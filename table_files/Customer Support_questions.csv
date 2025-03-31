@@ -1,0 +1,10 @@
+Question,
+List all the Customers,
+Retrieve all the sales orders placed,
+List all sales orders for a specific customer,
+Find the total number of sales orders grouped by order status,
+Show the billing and shipping addresses for all sales orders,
+List the payment methods used in all sales orders,
+Display sales orders with a specific shipping method,
+Find the latest sales order placed by a specific customer,
+List customers who have not placed any sales orders.

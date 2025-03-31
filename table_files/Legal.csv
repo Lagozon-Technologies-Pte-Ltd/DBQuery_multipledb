@@ -1,0 +1,4 @@
+Table,Description
+lz_legal_client,"Stores information about clients involved in legal matters .i.e. lg_client_id (primary key), lg_client_name, lg_client_contact, lg_client_billing_address, lg_client_payment_info, lg_notes.Serves as a reference table for the lz_legal_matter table."
+lz_legal_attorney,"Stores information about attorneys working on legal matters .i.e. lg_attorney_id (primary key), lg_attorney_name, lg_attorney_contact_info, lg_bar_number, lg_practice_area, lg_billing_rate.Used in conjunction with the lz_legal_matter table to assign attorneys to matters."
+lz_legal_matter,"Stores details about legal cases or matters .i.e. lg_matter_id (primary key), lg_client_id (foreign key referencing lz_legal_client), lg_matter_name, lg_matter_type, lg_matter_status, lg_primary_attorney (foreign key referencing lz_legal_attorney), lg_billing_information.Connects clients and attorneys to specific legal matters."

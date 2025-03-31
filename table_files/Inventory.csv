@@ -1,0 +1,8 @@
+Table,Description
+lz_items,"This table contains information about the items like inventory_item_id, item_type, description, uom_code, segment1, segment2, item_number"
+lz_item_trx,"This table contains information about the transactions related to any item like item_id, transaction_date, item_trx_id, transaction_qty, transaction_type_code, to_subinv_code,
+from_subinv_code "
+lz_item_onhand,"This table contains information about the items present now that is also known as item onhand. The details are like inventory_item_id, onhand_quantity, last_update_date
+,subinventory_code"
+lz_item_costs,"This table contains information about the costs associated with items. The details are like item_id, cost_type, cost_amount, effective_date "
+

@@ -1,0 +1,10 @@
+Question,
+List all the Item transactions,
+Show the details of items with transactions involving a specific subinventory.
+Retrieve the details of transactions with negative quantities.
+Show the number of transactions for each item grouped by transaction type.
+Retrieve the cost details for items with multiple cost types.
+List the items that have been transferred out of a specific subinventory.
+Retrieve the details of items with the highest transaction quantities.
+Find the average transaction quantity for each transaction type.
+Retrieve the total cost for all items grouped by cost type.

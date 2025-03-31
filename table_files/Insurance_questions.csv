@@ -1,0 +1,11 @@
+Question,
+List all the Insurance Policies,
+List all types of insurance policies offered by the company.
+Find the total number of policies sold by each insurance agent.
+Retrieve the payment history of a specific policyholder.
+List all policyholders and their corresponding policy details.
+Find the total premium amount paid for each type of insurance policy.
+Show insurance claims that are still pending or unresolved.
+Show the number of claims filed by policyholders grouped by insurance type.
+Retrieve the details of the top 5 highest-value claims filed.
+

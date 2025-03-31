@@ -1,0 +1,11 @@
+Question,
+List all the Receipts,
+List all invoices and their details,
+Find the average payment amount for each payment method,
+List payments made with missing or invalid payment references,
+Show invoices and their total amount paid versus the total amount due,
+List all payments grouped by payment method and their total amounts,
+Retrieve invoices and their corresponding receipts and payments,
+Identify customers with overdue invoices and no payments,
+Retrieve all payments made using a specific payment reference,
+List receipts with pending or incomplete payment status.

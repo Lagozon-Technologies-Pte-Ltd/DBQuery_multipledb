@@ -1,0 +1,10 @@
+Table,Description
+lz_employees,"This table has information related to the employees like employee id, hire date, salary, last name, first name, email, department, jobtitle, full name "
+lz_performance_reviews,"This is a table that stores information about employee performance evaluations, including ratings, goals met, strengths, weaknesses, and development plans."   
+
+
+lz_organizations,"This is a table that stores information about different functions or departments inside any company , including their names and descriptions."
+
+lz_training_programs,"This is a table that stores information about training programs offered by an organization, including their names, descriptions, duration, and whether they are required for specific roles."
+
+lz_employee_training,"This is a table that stores information about employee participation in training programs, including the employee's ID, the program's ID, the completion date, and the certificate number (if applicable)."

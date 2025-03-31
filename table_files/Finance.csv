@@ -1,0 +1,4 @@
+Table,Description
+lz_invoices,"This table contains information about the invoices like invoiceid, customerid, invoicedate, duedate, totalamount"
+lz_receipts,"This table contails information about the receipts like receiptid, invoiceid, receiptdate, paymentamount, paymentmethod, paymentreference, paymentstatus"
+lz_payments,"The lz_payments table  stores information related to payments, including payment ID, invoice ID, payment date, amount, method, and reference number."

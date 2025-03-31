@@ -1,0 +1,10 @@
+Question,
+Give the count of doctors in different departments,
+Retrieve doctors and the number of exams they referred,
+Retrieve the average number of exams conducted by each radiologist,
+List all incomplete radiology reports with their exam details,
+Find doctors specializing in a specific field,
+List all departments in the hospital,
+Retrieve the names and specialties of all doctors,
+List all nurses and their corresponding departments,
+Find the total number of patients in the hospital.

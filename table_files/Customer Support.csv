@@ -1,0 +1,3 @@
+Table,Description
+lz_customers, "This table has information related to the customers"
+lz_sales_order,"This table contains sales order information including the sales order ID, sales order number, order date, customer ID, order status, billing address, shipping address, shipping method ID, payment method ID, expected delivery date, and order notes. The CustomerID column references the CustomerID in the lz_customers table."

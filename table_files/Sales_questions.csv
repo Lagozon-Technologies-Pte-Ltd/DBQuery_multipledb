@@ -1,0 +1,10 @@
+Question,
+List all the Sales Areas,
+Retrieve dine-in sales and orders for Amazon Foods.
+Show dine-in and delivery and takeaway orders across all channels.
+Retrieve desktop and PWA sales for takeaway orders.
+List dine-in sales and orders by kiosk and ODC channels.
+Show delivery sales and orders for call center and phone channels.
+Show the total number of sales areas grouped by region.
+List countries with the most sales areas.
+Show the total number of representatives for each sales area.

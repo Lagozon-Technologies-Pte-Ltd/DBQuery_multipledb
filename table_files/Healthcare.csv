@@ -1,0 +1,8 @@
+Table,Description
+lz_departments,"This table contains information about various departments in hospitals. The details are like departmentid, departmentname"
+lz_doctors,"This table contains information about the doctors like doctored, departmentid, firstname, lastname, specialty, licensenumber"
+lz_nurses,"This table contains information about the nurses like nurseid, departmentid, firstname, lastname"
+lz_patients,"This table contains information about the patients like patientid, dateofbirth, firstname, lastname, gender"
+lz_radiology_exams,"This table contains information about the exams like examid, patientid, examdate, examtype, referringphysician, examstatus"
+lz_radiology_reports,"This table contains information about the exam reports like reported,,examid, reportdate, radiologist, reporttext"
+lz_radiology_types,"The lz_radiology_types table contains information about different types of radiology procedures or examinations, including their names, descriptions, and active status."

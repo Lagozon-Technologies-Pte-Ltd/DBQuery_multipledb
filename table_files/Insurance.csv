@@ -1,0 +1,7 @@
+Table,Description
+lz_ins_policy_type,"A lookup table containing different types of insurance policies offered by the company."
+lz_ins_policy,"Stores information about individual insurance contracts, including policy details, policyholder information, and financial terms."
+lz_ins_client,"Contains information about policyholders or customers associated with insurance policies."
+lz_ins_claim,"Records insurance claims filed by policyholders, including claim details and status."
+lz_ins_premium_pay,"Tracks premium payments made by policyholders for their insurance policies."
+lz_ins_agent,"Stores information about insurance agents who sell policies."
