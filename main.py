@@ -92,7 +92,12 @@ class ChartRequest(BaseModel):
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
-subject_areas1 = os.getenv('subject_areas1').split(',')
+subject_areas1 = ["Demo"]  # For GCP
+subject_areas2 = [          # For PostgreSQL-Azure
+    "Finance", "Customer Support", "HR", "Healthcare",
+    "Insurance", "Inventory", "Legal", "Sales"
+]
+databases = ["GCP", "PostgreSQL-Azure"]
 question_dropdown = os.getenv('Question_dropdown')
 llm = ChatOpenAI(model='gpt-4o-mini', temperature=0)  # Adjust model as necessary
 from table_details import get_table_details  # Importing the function
@@ -459,11 +464,14 @@ if 'messages' not in session_state:
 async def submit_query(
     request: Request,
     section: str = Form(...),
+    database: str = Form(...), 
     user_query: str = Form(...),
     page: int = Query(1),
     records_per_page: int = Query(10),
     model: Optional[str] = Form("gpt-4o-mini")
 ):
+    selected_subject = section
+    selected_database= database
     if user_query.lower() == 'break':
 # Capture current state before reset
         response_data = {
@@ -504,7 +512,7 @@ async def submit_query(
 
         # **Step 3: Continue to Database Query if Needed**
         response, chosen_tables, tables_data, agent_executor = invoke_chain(
-            user_query, session_state['messages'], model, selected_subject
+            user_query, session_state['messages'], model, selected_subject,selected_database
         )
 
         if isinstance(response, str):
@@ -630,7 +638,9 @@ async def read_root(request: Request, subject: Optional[str] = None  # Capture t
     # Pass dynamically populated dropdown options to the template
     return templates.TemplateResponse("index.html", {
         "request": request,
+        "databases": databases,
         "section": subject_areas1,
+        "subject_areas2": subject_areas2,
         "tables": tables,   
         "questions": questions              # Table dropdown based on database selection
     })
