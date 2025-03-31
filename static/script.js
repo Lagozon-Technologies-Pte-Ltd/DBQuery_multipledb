@@ -252,7 +252,8 @@ async function sendMessage() {
         const formData = new FormData();
         formData.append('user_query', userMessage);
         formData.append('section', selectedSection);
-        formData.append('database', selectedDatabase);  // Add database to form data
+        formData.append('database', selectedDatabase);
+        console.log(selectedSection) // Add database to form data
         console.log(selectedDatabase)
         const response = await fetch("/submit", { method: "POST", body: formData });
 
@@ -279,16 +280,11 @@ async function sendMessage() {
         `;
 
         chatMessages.scrollTop = chatMessages.scrollHeight;
-        if (data.tables && data.tables.length > 0) {
-            if (data.tables[0].table_name) {
-                tableName = data.tables[0].table_name;
-                loadTableColumns(tableName);
-                updatePageContent(data);
-            } else {
-                console.warn("Table data exists but missing table_name property");
-            }
-        } else {
-            console.log("No tables in response"); // Or handle this case appropriately
+        if (data.tables) {
+            console.log()
+            tableName = data.tables[0].table_name;
+            loadTableColumns(tableName)
+            updatePageContent(data);
         }
     } catch (error) {
         console.error("Error:", error);
