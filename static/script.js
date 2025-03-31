@@ -141,6 +141,81 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
+// Database and Section Dropdown Handling
+function connectToDatabase(selectedDatabase) {
+    const sectionDropdown = document.getElementById('section-dropdown');
+    const connectionStatus = document.getElementById('connection-status');
+    
+    // Clear previous options
+    sectionDropdown.innerHTML = '<option value="" disabled selected>Select Subject</option>';
+    
+    // Update connection status
+    connectionStatus.textContent = `Connecting to ${selectedDatabase}...`;
+    connectionStatus.style.color = 'orange';
+    
+    // Get the appropriate section template based on database selection
+    let sectionTemplateId;
+    let sections = [];
+    
+    if (selectedDatabase === 'GCP') {
+        sections = ['Demo']; // Directly specify GCP sections
+    } else if (selectedDatabase == 'PostgreSQL-Azure') {
+        sections = [
+            'Finance', 'Customer Support', 'HR', 'Healthcare', 
+            'Insurance', 'Inventory', 'Legal', 'Sales'
+        ]; // Directly specify PostgreSQL sections
+    } else {
+        console.error('Unknown database selected:', selectedDatabase);
+        return;
+    }
+    
+    // Add sections to dropdown
+    sections.forEach(section => {
+        const option = document.createElement('option');
+        option.value = section;
+        option.textContent = section;
+        sectionDropdown.appendChild(option);
+    });
+    
+    // Enable the dropdown and update status
+    sectionDropdown.disabled = false;
+    connectionStatus.textContent = `Connected to ${selectedDatabase}`;
+    connectionStatus.style.color = 'green';
+    
+    // Reset any previous selections
+    sectionDropdown.selectedIndex = 0;
+    
+    // // Fetch questions for the default section (if needed)
+    // if (sections.length > 0) {
+    //     fetchQuestions(sections[0]);
+    // }
+}
+
+// Initialize event listeners for database dropdown
+document.addEventListener('DOMContentLoaded', function() {
+    // Database dropdown initialization
+    const dbDropdown = document.getElementById('database-dropdown');
+    if (dbDropdown) {
+        // Set initial state
+        document.getElementById('connection-status').textContent = "Select a database";
+        
+        // Add change handler
+        dbDropdown.addEventListener('change', function() {
+            connectToDatabase(this.value);
+        });
+    }
+
+    // Other initializations
+    document.getElementById("chat-mic-button").addEventListener("click", toggleRecording);
+    document.getElementById("chat_user_query").addEventListener("keyup", function(event) {
+        if (event.key === "Enter") sendMessage();
+    });
+    
+    // Set default tab
+    document.getElementsByClassName("tablinks")[0]?.click();
+});
+
+// Your existing sendMessage function with modifications
 async function sendMessage() {
     const userQueryInput = document.getElementById("chat_user_query");
     const chatMessages = document.getElementById("chat-messages");
@@ -150,14 +225,24 @@ async function sendMessage() {
     let userMessage = userQueryInput.value.trim();
     if (!userMessage) return;
 
+    // Get selected database and section
+    const selectedDatabase = document.getElementById('database-dropdown').value;
+    const selectedSection = document.getElementById('section-dropdown').value;
+
+    // Validate selection
+    if (!selectedDatabase || !selectedSection) {
+        alert("Please select both a database and a subject area");
+        return;
+    }
+
     // Append user message
     chatMessages.innerHTML += `
         <div class="message user-message">
             <div class="message-content">${userMessage}</div>
         </div>
     `;
-    userQueryInput.value = ""; // Clear input field
-    chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
+    userQueryInput.value = "";
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 
     // Show typing indicator
     typingIndicator.style.display = "flex";
@@ -166,8 +251,9 @@ async function sendMessage() {
     try {
         const formData = new FormData();
         formData.append('user_query', userMessage);
-        formData.append('section', document.getElementById('section-dropdown').value);
-
+        formData.append('section', selectedSection);
+        formData.append('database', selectedDatabase);  // Add database to form data
+        console.log(selectedDatabase)
         const response = await fetch("/submit", { method: "POST", body: formData });
 
         if (!response.ok) throw new Error("Failed to fetch response");
@@ -177,11 +263,9 @@ async function sendMessage() {
 
         let botResponse = "";
 
-        // **If it's an insight message (NO SQL Query), handle it separately**
         if (!data.query) {
             botResponse = data.chat_response || "I couldn't find any insights for this query.";
         } else {
-            // **If it's an SQL Query, handle separately**
             document.getElementById("sql-query-content").textContent = data.query;
             botResponse = data.chat_response || "Here's what I found:";
         }
@@ -194,25 +278,99 @@ async function sendMessage() {
             </div>
         `;
 
-        // Scroll chat to bottom
         chatMessages.scrollTop = chatMessages.scrollHeight;
         if (data.tables) {
+            console.log()
             tableName = data.tables[0].table_name;
             loadTableColumns(tableName)
             updatePageContent(data);
-
-
         }
-        // Update table, visualization, and query details if applicable
     } catch (error) {
         console.error("Error:", error);
         typingIndicator.style.display = "none";
         alert("Error processing request.");
     }
 }
-document.getElementById("chat-mic-button").addEventListener("click", toggleRecording);
-// Handle Mic Recording (Modify toggleRecording function)
+
+// Your existing mic recording function
 async function toggleRecording() {
+    const micButton = document.getElementById("chat-mic-button");
+
+    if (!isRecording) {
+        // Store the original button HTML before changing it
+        originalButtonHTML = micButton.innerHTML;
+
+        // Start recording
+        micButton.innerHTML = "Recording... (Click to stop)";
+
+        isRecording = true;
+        audioChunks = []; // Reset recorded data
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = async () => {
+                isRecording = false; // Allow next recording
+
+                if (audioChunks.length === 0) {
+                    alert("No audio recorded.");
+                    return;
+                }
+
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const formData = new FormData();
+                formData.append("file", audioBlob, "recording.webm");
+
+                try {
+                    console.log("Sending audio file to server...");
+                    const response = await fetch("/transcribe-audio/", {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    const data = await response.json();
+                    console.log("Server Response:", data);
+
+                    if (data.transcription) {
+                        document.getElementById("chat_user_query").value = data.transcription;
+                    } else {
+                        alert("Failed to transcribe audio.");
+                    }
+                } catch (error) {
+                    console.error("Error transcribing audio:", error);
+                    alert("An error occurred while transcribing.");
+                }
+
+                // Restore the original button HTML (image inside button)
+                micButton.innerHTML = originalButtonHTML;
+            };
+
+            mediaRecorder.start();
+            console.log("Recording started...");
+        } catch (error) {
+            console.error("Microphone access denied or error:", error);
+            alert("Microphone access denied. Please allow microphone permissions.");
+            isRecording = false;
+        }
+    } else {
+        // Stop recording
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+            console.log("Recording stopped.");
+        }
+    }
+}
+
+
+// Initialize mic button listener
+document.getElementById("chat-mic-button").addEventListener("click", toggleRecording);async function toggleRecording() {
     const micButton = document.getElementById("chat-mic-button");
 
     if (!isRecording) {
@@ -323,7 +481,7 @@ async function fetchQuestions(selectedSection) {
 
     if (selectedSection) {
         try {
-            const response = await fetch(`/get_questions?subject=${selectedSection}`, );
+            const response = await fetch(`/get_questions?subject=${selectedSection}`);
             const data = await response.json();
 
             if (data.questions && data.questions.length > 0) {
@@ -341,7 +499,14 @@ async function fetchQuestions(selectedSection) {
     }
 }
 
+// // Ensure that the function is called when the section is selected
+// document.getElementById("section-dropdown")?.addEventListener("change", (event) => {
+//     fetchQuestions(event.target.value);
+// });
 
+/**
+ *
+ */
 function clearQuery() {
     const userQueryInput = document.getElementById("chat_user_query"); // changed id
     userQueryInput.value = ""
