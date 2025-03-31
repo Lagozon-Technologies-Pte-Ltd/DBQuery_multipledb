@@ -279,11 +279,16 @@ async function sendMessage() {
         `;
 
         chatMessages.scrollTop = chatMessages.scrollHeight;
-        if (data.tables) {
-            console.log()
-            tableName = data.tables[0].table_name;
-            loadTableColumns(tableName)
-            updatePageContent(data);
+        if (data.tables && data.tables.length > 0) {
+            if (data.tables[0].table_name) {
+                tableName = data.tables[0].table_name;
+                loadTableColumns(tableName);
+                updatePageContent(data);
+            } else {
+                console.warn("Table data exists but missing table_name property");
+            }
+        } else {
+            console.log("No tables in response"); // Or handle this case appropriately
         }
     } catch (error) {
         console.error("Error:", error);
