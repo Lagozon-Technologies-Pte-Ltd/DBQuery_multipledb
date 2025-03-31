@@ -34,7 +34,8 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_openai import ChatOpenAI
 
 from table_details import table_chain as select_table
-from prompts import final_prompt, answer_prompt, few_shot_prompt
+from prompts1 import final_prompt1
+from prompts import final_prompt2
 from table_details import get_table_details , get_tables , itemgetter , create_extraction_chain_pydantic, Table 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -42,6 +43,26 @@ from sqlalchemy.orm import sessionmaker
 import configure
 # os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'Cloud_service.json'
 # client = bigquery.Client()
+from sqlalchemy.exc import SQLAlchemyError
+def get_postgres_db(selected_subject, chosen_tables):
+    print("SELECTED SUB",selected_subject,chosen_tables)
+    try:
+        print(f'postgresql+psycopg2://{quote_plus(db_user)}:{quote_plus(db_password)}@{db_host}:{db_port}/{db_database}')
+        print(db_schema)
+        print("Entered try block yoo")
+        db = SQLDatabase.from_uri(
+            f'postgresql+psycopg2://{quote_plus(db_user)}:{quote_plus(db_password)}@{db_host}:{db_port}/{db_database}',
+            schema=db_schema,
+            include_tables=chosen_tables,
+            view_support=True,
+            sample_rows_in_table_info=1,
+            lazy_table_reflection=True
+        )
+        print("Connection successful")
+
+    except SQLAlchemyError as e:
+          print(f"Error connecting to the database: {e}")
+    return db
 def create_bigquery_uri(project_id, dataset_id):
     """Creates a BigQuery URI string."""
     return f"{project_id}.{dataset_id}"
@@ -124,15 +145,35 @@ with open("table_info.txt", "w") as file:
 
 print("Table info saved successfully to table_info.txt")
 # @cache_resource
-def get_chain(question, _messages, selected_model, selected_subject='Demo'):
+def get_chain(question, _messages, selected_model, selected_subject, selected_database):
     llm = ChatOpenAI(model=selected_model, temperature=0)
 
-    db = BigQuerySQLDatabase()  # Use the correct class
-
+    if selected_database=="GCP":
+            db = BigQuerySQLDatabase("Cloud_service.json")
+    else:
+        table_details = get_table_details(selected_subject)
+        print("Selected subject, inside get chain",selected_subject)
+        table_details_set_prompt = os.getenv('TABLE_DETAILS_SET_PROMPT')
+        table_details_prompt = table_details_set_prompt.format(table=table_details)
+        
+        table_chain = {"input": itemgetter("question")} | create_extraction_chain_pydantic(Table, llm, system_message=table_details_prompt) | get_tables
+        print("hiiiii")
+        chosen_tables = table_chain.invoke({"question": question})
+        print("helllooo")
+        db = get_postgres_db(selected_subject, chosen_tables)
+        print("foolll")
+    print("start",selected_database)
     print("Generate Query Starting")
+    if selected_database=="GCP":
+        print(selected_database)
+        final_prompt=final_prompt1
+    else:
+        print("kkk")
+        final_prompt=final_prompt2    
     generate_query = create_sql_query_chain(llm, db, final_prompt)
     SQL_Statement = generate_query.invoke({"question": question, "messages": _messages})
     print(f"Generated SQL Statement before execution: {SQL_Statement}")
+
 
     # Override QuerySQLDataBaseTool validation
     class CustomQuerySQLDatabaseTool(QuerySQLDataBaseTool):
@@ -149,8 +190,10 @@ def get_chain(question, _messages, selected_model, selected_subject='Demo'):
             result=itemgetter("query")
         )
     )
+    if selected_database == "GCP":
+        chosen_tables = db.get_table_names()
 
-    return chain, db.get_table_names(), SQL_Statement, db
+    return chain, chosen_tables, SQL_Statement, db
 
 # def read_table_info(file_path):
 #     """
@@ -164,30 +207,41 @@ def get_chain(question, _messages, selected_model, selected_subject='Demo'):
 #         return ""
 # table_info_text = read_table_info("table_info.txt")  # Load the entire text of the file
 
-def invoke_chain(question, messages, selected_model, selected_subject):
+def invoke_chain(question, messages, selected_model, selected_subject, selected_database):
     try:
         # if not is_relevant(question, table_info):
         #     return "I am DBQuery, a generative AI tool developed at Lagozon Technologies for database query generation. Please ask me queries related to your database.", [], {}, None
         print('Model used:', selected_model)
         history = create_history(messages)
-        chain, chosen_tables, SQL_Statement, db = get_chain(question, history.messages, selected_model, selected_subject)
-        print(f"Generated SQL Statement: {SQL_Statement}")
+        chain, chosen_tables, SQL_Statement, db = get_chain(question, history.messages, selected_model, selected_subject, selected_database)
+        print(f"Generated SQL Statement in newlangchain_utils: {SQL_Statement}")
         SQL_Statement = SQL_Statement.replace("SQL Query:", "").strip()
 
         response = chain.invoke({"question": question, "top_k": 3, "messages": history.messages})
         print("Question:", question)
         print("Response:", response)
         print("Chosen tables:", chosen_tables)
+        alchemyEngine = create_engine(f'postgresql+psycopg2://{quote_plus(db_user)}:{quote_plus(db_password)}@{db_host}:{db_port}/{db_database}')
 
         tables_data = {}
         for table in chosen_tables:
             query = response["query"]
             print(f"Executing SQL Query: {query}")
-
-            result_json = db.run(query)
-            df = pd.DataFrame(result_json)  # Convert result to DataFrame
-            tables_data[table] = df
-            break
+            if selected_database=="GCP":
+                result_json = db.run(query)
+                df = pd.DataFrame(result_json)  # Convert result to DataFrame
+                tables_data[table] = df
+                break
+            else:
+                with alchemyEngine.connect() as conn:
+                    df = pd.read_sql(
+                        sql=query,
+                        con=conn.connection
+                    )
+                # tables_data[table] = pd.DataFrame()
+                tables_data[table] = df
+                print(table)
+                break
 
         return response, chosen_tables, tables_data, db
 
