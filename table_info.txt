@@ -1,0 +1,32 @@
+
+Table: DS_sales_data.billing_data
+Columns:
+  RSM ID (INTEGER) NULLABLE
+  Model ID (INTEGER) NULLABLE
+  SourceID (STRING) NULLABLE
+  Open Booking (INTEGER) NULLABLE
+  Enquiry (INTEGER) NULLABLE
+  Test Drive (INTEGER) NULLABLE
+  Billing Volume (INTEGER) NULLABLE
+  Target Billing Volume (INTEGER) NULLABLE
+  Retail Volume (INTEGER) NULLABLE
+  Target Retail Volume (INTEGER) NULLABLE
+  Date (DATE) NULLABLE
+
+Table: DS_sales_data.product_hierarchy
+Columns:
+  Model ID (INTEGER) NULLABLE
+  Model Name (STRING) NULLABLE
+  Segment (STRING) NULLABLE
+
+Table: DS_sales_data.sales_person_hierarchy
+Columns:
+  RSM ID (INTEGER) NULLABLE
+  RSM Name (STRING) NULLABLE
+  RO Name (STRING) NULLABLE
+  Zone Name (STRING) NULLABLE
+
+Table: DS_sales_data.source_master
+Columns:
+  string_field_0 (STRING) NULLABLE
+  string_field_1 (STRING) NULLABLE
