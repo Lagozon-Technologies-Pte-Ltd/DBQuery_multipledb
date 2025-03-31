@@ -1,0 +1,759 @@
+@import url("https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css");
+
+/* Global Styles */
+body {
+    font-family: "Geist-SemiBold", Helvetica;
+    ;
+    margin: 0;
+    padding: 0;
+    background-size: cover !important;
+    background-repeat: no-repeat !important;
+    background-attachment: fixed !important;
+    background: linear-gradient(180deg, rgb(221, 204.64, 249.26) 0%, rgb(255, 255, 255) 100%);
+    color: #21126b;
+    font-size: 18px;
+}
+#xlsx-btn {
+    display: flex;
+    justify-content: center; /* Centers the buttons horizontally */
+    gap: 15px; /* Adds spacing between buttons */
+    margin-top: 15px; /* Adds spacing between the table and buttons */
+}
+
+#add-to-faqs-btn {
+    background: radial-gradient(50% 50% at 50% 50%, rgb(183.48, 168.62, 249.71) 4%, rgb(136.38, 111.28, 248.21) 100%);
+    color: white;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 15px;
+    font-size: 16px;
+    transition: all 0.3s ease-in-out;
+
+}
+
+#main-content {
+    /* width: 75%;  Remove this or adjust */
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    /* Ensure content stacks properly */
+}
+
+/* SQL Query Popup */
+.modal {
+    display: none;
+    /* Hidden by default */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 60%;
+    max-width: 600px;
+    position: relative;
+    text-align: center;
+}
+
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 20px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.close-btn:hover {
+    color: red;
+}
+
+/* Style the tab */
+.tab {
+    height: 30px;
+    overflow: hidden;
+    background-color: #ffff;
+    display: flex;
+    border-color: transparent;
+    border-radius: 15px;
+    box-shadow: 0px 4.27px 34.18px -4.27px #638cf352;
+    border-image: linear-gradient(to bottom,
+
+            rgb(255, 255, 255),
+
+            rgb(157.71, 202.74, 250.87)) 1;
+
+}
+
+/* Style the buttons inside the tab */
+.tab button {
+    margin: 0;
+    padding: 0px;
+    color: #21126b;
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    transition: 0.3s;
+    font-size: 18px;
+    flex: 1;
+    text-align: center;
+}
+
+/* Change background color of buttons on hover */
+.tab button:hover {
+    background-color: #ffff;
+}
+
+/* Create an active/current tablink class */
+.tab button.active {
+
+    color: #ffff;
+    border-radius: 12.82px;
+    box-shadow: 0px 4.27px 12.82px -4.27px #789df6;
+    background: radial-gradient(50% 50% at 50% 50%, rgb(183.48, 168.62, 249.71) 4%, rgb(136.38, 111.28, 248.21) 100%);
+}
+
+/* Style the tab content */
+.tabcontent {
+    color: #21126b;
+    display: none;
+    padding: 6px 12px;
+    border-top: none;
+}
+
+/* Chat Container */
+#chat-container {
+    width: 100%;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+/* Chat History */
+.chat-history {
+    margin-top: 5px;
+    height: 420px;
+    overflow-y: auto;
+    padding: 15px;
+    background: #F7F5FF;
+    border-radius: 12px;
+    border: 1px solid #d1dbe8;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: inset 0px 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Chat Messages */
+.message {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    display: flex;
+    align-items: center;
+    max-width: 80%;
+    word-wrap: break-word;
+    transition: all 0.3s ease-in-out;
+}
+
+.user-message {
+    justify-content: flex-end;
+    align-self: flex-end;
+    text-align: right;
+    animation: slideInRight 0.3s ease-in-out;
+}
+
+.ai-message {
+    justify-content: flex-start;
+    align-self: flex-start;
+    text-align: left;
+    animation: slideInLeft 0.3s ease-in-out;
+}
+
+/* Chat Bubble Styling */
+.message-content {
+    padding: 14px 18px;
+    border-radius: 16px;
+    font-size: 16px;
+    line-height: 1.4;
+    max-width: 100%;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* User Message */
+.user-message .message-content {
+    background-color: white;
+    color: #21126b;
+    border-top-right-radius: 5px;
+}
+
+/* AI Message */
+.ai-message .message-content {
+    background-color: white;
+    color: #21126b;
+    border-top-left-radius: 5px;
+}
+
+/* Chat Input Section */
+#unified-input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+#unified-input-container select,
+#unified-input-container input {
+    background-color: inherit;
+    padding: 14px;
+    font-size: 16px;
+    border: transparent;
+    border-radius: 20px;
+    /* width: 100%; */
+    transition: all 0.3sease -in-out;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);
+    background: #f7f9fc;
+    color: #4a5568;
+    outline: none;    
+}
+
+.chatinput-wrapper {
+    border: 1px solid #c1cbe0;
+    outline: none;
+    display: flex;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);
+    border-radius: 20px;
+    align-items: center;
+    width: 100%;
+    height: 49.3px;
+}
+
+/* Chat Input Field */
+#chat_user_query {
+    flex: 1;
+    padding: 14px;
+    font-size: 16px;
+    border: 1px solid #c1cbe0;
+    border-radius: 8px;
+    background-color: white;
+    transition: border 0.3s ease;
+}
+
+#chat_user_query:focus {
+    border-color: #90e0ef;
+    outline: none;
+    box-shadow: 0px 0px 10px rgba(0, 123, 255, 0.2);
+}
+
+/* Buttons */
+#send-button {
+    /* background: radial-gradient(50% 50% at 50% 50%, rgb(183.48, 168.62, 249.71) 4%, rgb(136.38, 111.28, 248.21) 100%); */
+    /* color: white; */
+    height: 38px;
+    /* border: none; */
+    padding: 12px 5px;
+    cursor: pointer;
+    /* border-radius: 8px; */
+    /* font-size: 16px; */
+    transition: all 0.3sease-in-out;
+}
+
+#query-results {
+    margin-top: 20px;
+    min-height: 520px;
+    height: 100%;
+    overflow-y: auto;
+    padding: 15px;
+    background: #F7F5FF;
+    border-radius: 12px;
+    border: 1px solid #d1dbe8;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: inset 0px 4px 6px rgba(0, 0, 0, 0.05);
+
+}
+
+#mic-button {
+    background: linear-gradient(to right, #f4f8fb, #e6eff7);
+
+    cursor: pointer;
+    color: #d1002c;
+
+}
+
+.mic-icon {
+    height: 30px;
+}
+
+#send-button:hover,
+#chat-mic-button:hover {
+    transform: scale(1.05);
+}
+
+#chat-mic-button {
+    background-color: transparent;
+    font-size: 18px;
+}
+
+/* Typing Indicator */
+#typing-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 10px;
+    font-size: 14px;
+    color: white;
+    border-radius: 8px;
+    font-weight: bold;
+    padding: 8px 15px;
+}
+
+/* Typing Dots Animation */
+.typing-dots::after {
+    content: "...";
+    display: inline-block;
+    animation: dots 1.5s steps(3, end) infinite;
+}
+
+@keyframes dots {
+    0% {
+        content: ".";
+    }
+
+    33% {
+        content: "..";
+    }
+
+    66% {
+        content: "...";
+    }
+
+    100% {
+        content: ".";
+    }
+}
+
+/* Fade In/Out Animation for Smooth Effect */
+@keyframes fadeInOut {
+    0% {
+        opacity: 0.2;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.2;
+    }
+}
+
+/* Animations */
+@keyframes slideInRight {
+    from {
+        transform: translateX(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Style for SQL Code Blocks */
+pre {
+    background-color: #f4f4f4;
+    padding: 10px;
+    border-radius: 5px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-x: auto;
+    font-family: "Courier New", monospace;
+}
+
+code.sql {
+    color: #d63384;
+    /* Light pinkish color */
+    font-weight: bold;
+}
+
+#generate-chart-button {
+    background: radial-gradient(50% 50% at 50% 50%, rgb(183.48, 168.62, 249.71) 4%, rgb(136.38, 111.28, 248.21) 100%);
+    color: white;
+    border: none;
+    padding: 12px 15px;
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s ease-in-out;
+
+
+}
+
+#view-sql-query-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    /* Space between icon and text */
+    background: radial-gradient(50% 50% at 50% 50%, rgb(183.48, 168.62, 249.71) 4%, rgb(136.38, 111.28, 248.21) 100%);
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 15px;
+    padding: 8px;
+    font-size: 16px;
+    transition: all 0.3s ease-in-out;
+    color: white;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+
+
+}
+
+.download-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    /* Space between icon and text */
+    background: radial-gradient(50% 50% at 50% 50%, rgb(183.48, 168.62, 249.71) 4%, rgb(136.38, 111.28, 248.21) 100%);
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 15px;
+    padding: 8px;
+
+    font-size: 16px;
+    transition: all 0.3s ease-in-out;
+    color: white;
+    border: none;
+}
+
+.download-btn:hover {
+    background-color: #21126b;
+    transform: scale(1.05);
+}
+
+.download-btn:active {
+    background-color: #003366;
+    transform: scale(0.98);
+}
+
+.excel-icon {
+    width: 24px;
+    height: 24px;
+}
+
+/* Header Styling */
+header {
+    color: #21126b;
+    padding: 10px;
+    text-align: center;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    flex-direction: row;
+    font-family: "Geist-Medium", Helvetica;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.db-logo {
+    width: 250px;
+
+}
+
+/* Logo */
+.logo {
+    width: 250px;
+    height: auto;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+h1 {
+    font-family: Geist-SemiBold, Helvetica;
+
+    margin: 0;
+    font-size: 28px;
+    flex: 1;
+    line-height: 1.2;
+}
+
+#user_query {
+    width: 100%;
+    /* Ensures it takes the full width of the dropdown */
+    box-sizing: border-box;
+    /* Prevents content from exceeding the defined width */
+    padding: 8px;
+    font-size: 16px;
+}
+
+
+
+/* Form Container */
+form {
+    background: white;
+    padding: 20px;
+    max-width: 950px;
+    margin: 20px auto;
+    border-radius: 10px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    color: #21126b;
+    font-size: 18px;
+}
+
+h2 {
+    font-family: "Geist-SemiBold", Helvetica;
+    font-size: 25px;
+    font-weight: 600;
+    color: #21126b;
+
+}
+
+label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 18px;
+    color: black;
+}
+
+label input[type="radio"] {
+    margin-left: 10px;
+}
+
+main {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    /* Center horizontally */
+    align-items: flex-start;
+    /* Align to the top */
+    width: 100%;
+    max-width: 1500px;
+    /* Limit max width */
+    margin: 0 auto;
+    /* Center main in the viewport */
+    padding: 10px;
+}
+
+#main-content {
+    justify-content: center;
+    width: 75%;
+    padding: 15px;
+}
+
+select,
+input {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    color: black;
+    font-size: 18px;
+}
+
+button {
+    background-color: #21126b;
+    color: white;
+    padding: 5px;
+    border: none;
+    margin: 5px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+    font-size: 18px;
+}
+
+button:hover {
+    background-color: #003366;
+}
+
+.download-btn:hover {
+    background-color: #3c6e71;
+}
+
+/* Query Results Section */
+#query-results {
+    background: #F7F5FF;
+    padding: 20px;
+    max-width: 950px;
+    /* margin: 20px auto; */
+    border-radius: 10px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    color: #21126b;
+    font-size: 18px;
+}
+
+#tables_container {
+    margin-top: 20px;
+    overflow-x: auto;
+}
+
+/* Table Styling */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+table th,
+table td {
+    color: black;
+    border: 2px solid black;
+    padding: 5px;
+    text-align: left;
+    font-size: 18px;
+}
+
+#chart-visualisation {
+    display: none;
+    margin-top: 20px;
+    flex-direction: column;
+}
+
+#visualise-options {
+    display: flex;
+    margin-top: 20px;
+    align-items: flex-end;
+    justify-content: space-around;
+    flex-direction: row;
+}
+
+table th {
+    background-color: #f7f5ef !important;
+    color: black !important;
+    font-weight: bold;
+}
+
+table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+table tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Pagination Styling */
+.pagination {
+    display: flex;
+    justify-content: center;
+    list-style: none;
+    padding: 0;
+    margin-top: 10px;
+}
+
+.page-item {
+    margin: 0 5px;
+}
+
+.page-item a {
+    display: block;
+    text-decoration: none;
+    background: radial-gradient(50% 50% at 50% 50%, rgb(183.48, 168.62, 249.71) 4%, rgb(136.38, 111.28, 248.21) 100%);
+    color: white;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s ease-in-out;
+    color: white;
+    border-radius: 15px;
+    transition: background 0.3s ease;
+}
+
+.page-item a:hover {
+    background: #720e9e;
+}
+
+.page-item.active a {
+    background: #720e9e;
+    font-weight: bold;
+}
+
+.page-item.disabled a {
+    background: #ddd;
+    color: #777;
+    cursor: not-allowed;
+}
+
+/* Bold Labels for Query and Results */
+#user_query_display,
+#sql_query_display {
+    font-weight: bold;
+    font-size: 18px;
+    color: #21126b;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+
+    form,
+    #query-results {
+        max-width: 90%;
+    }
+
+    header {
+        flex-direction: column;
+        text-align: center;
+        justify-content: center;
+        gap: 15px;
+    }
+
+    .logo {
+        width: 150px;
+        height: auto;
+        margin-bottom: 10px;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+
+    label {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    label input[type="radio"] {
+        margin-left: 0;
+        margin-top: 5px;
+    }
+
+    table th,
+    table td {
+        font-size: 16px;
+        padding: 8px;
+    }
+
+    button {
+        padding: 10px;
+        font-size: 16px;
+    }
+
+    .pagination {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .pagination a {
+        width: 100%;
+        text-align: center;
+        padding: 8px 12px;
+        font-size: 16px;
+    }
+}

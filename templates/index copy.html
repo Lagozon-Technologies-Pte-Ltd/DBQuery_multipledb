@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DBQuery: Generative AI Assistant to your Database</title>
+    <link rel="stylesheet" href="static/styles.css">
+    <!-- Prism.js for Syntax Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+</head>
+
+<body>
+    <header>
+        <img src="static/logo.png" alt="DBQuery Logo" class="logo">
+        <h1>DBQuery: Generative AI Assistant to your Database</h1>
+        <img src="static\DBQueryLogo.png" alt="dbquery logo" class="db-logo">
+    </header>
+    <main style="display: flex;">
+
+        <!-- Chat Container (Left Side) -->
+        <div id="chat-container">
+            <h2>Super Chat</h2>
+            <div id="chat-messages" class="chat-history">
+                <!-- Messages will be dynamically inserted here -->
+            </div>
+
+
+            <!-- Regenerate Response Button -->
+
+            <!-- Unified Input Area -->
+            <div id="unified-input-container">
+                <select name="section" id="section-dropdown" required>
+                    <option value="" disabled selected>Select Subject</option>
+                    {% for sec in section %}
+                    <option value="{{ sec }}">{{ sec }}</option>
+                    {% endfor %}
+                </select>
+
+                <div class="input-area">
+                    <input list="faq-questions" id="chat_user_query" name="user_query"
+                        placeholder="Ask or search anything...">
+                    <datalist id="faq-questions"></datalist>
+
+                    <button id="chat-mic-button" type="button" onclick="toggleRecording()">
+                        🎤
+                    </button>
+                    <button id="send-button" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Query Results (Right Side) -->
+        <div id="query-results" style="width: 55%; padding: 15px;">
+            <h1 style="background-color: #90e0ef; color: #6f6dad;">Query Details</h1>
+
+            <!-- Tab Navigation -->
+            <div class="tab">
+                <button class="tablinks active" onclick="openTab(event, 'viewData')">View Data</button>
+                <button class="tablinks" onclick="openTab(event, 'createVisualizations')">Create Visualizations</button>
+            </div>
+
+            <!-- View Data Tab Content -->
+            <div id="viewData" class="tabcontent" style="display:block;">
+                <p id="user_query_display"><strong>Query Asked:</strong> <span></span></p>
+                <div id="sql_query_display">
+                </div>
+
+                <!-- Hidden Popup Modal -->
+                <div id="sql-query-popup" class="modal">
+                    <div class="modal-content">
+                        <span class="close-btn" onclick="closeSQLQueryPopup()">&times;</span>
+                        <h2>SQL Query</h2>
+                        <pre><code id="sql-query-content" class="language-sql"></code></pre>
+                    </div>
+                </div>
+                <div id="tables_container"></div>
+                <div id="xlsx-btn"></div>
+                <button id="add-to-faqs-btn" onclick="addToFAQs()" style="margin-top: 10px;">Add to FAQs</button>
+                <p id="faq-message" style="color: green;"></p>
+            </div>
+
+            <!-- Create Visualizations Tab Content -->
+            <div id="createVisualizations" class="tabcontent" style="display:none;">
+                <h2>Data Visualization</h2>
+                <div id="visualise-options">
+                    <div>
+                        <label for="x-axis-dropdown">Select X-Axis:</label>
+                        <select id="x-axis-dropdown">
+                            <option value="" disabled selected>Select X-Axis</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="y-axis-dropdown">Select Y-Axis:</label>
+                        <select id="y-axis-dropdown">
+                            <option value="" disabled selected>Select Y-Axis</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="chart-type-dropdown">Select Chart Type:</label>
+                        <select id="chart-type-dropdown">
+                            <option value="Line Chart">Line Chart</option>
+                            <option value="Bar Chart">Bar Chart</option>
+                            <option value="Scatter Plot">Scatter Plot</option>
+                            <option value="Pie Chart">Pie Chart</option>
+                            <option value="Histogram">Histogram</option>
+                            <option value="Box Plot">Box Plot</option>
+                            <option value="Heatmap">Heatmap</option>
+                            <option value="Violin Plot">Violin Plot</option>
+                            <option value="Area Chart">Area Chart</option>
+                            <option value="Funnel Chart">Funnel Chart</option>
+                        </select>
+                    </div>
+                    <button onclick="generateChart()" id="generate-chart-button">Generate Chart</button>
+
+                    <p id="chart-loading" style="display: none; color: red; font-weight: bold;">Generating Chart...</p>
+                </div>
+                <div id="chart-container" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+    </main>
+    <script src="static/script.js"></script>
+</body>
+
+</html>
