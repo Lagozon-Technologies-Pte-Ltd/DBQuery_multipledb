@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DBQuery: Generative AI Assistant to your Database</title>
-    <link rel="shortcut icon" href="static\favicon.png" type="image/x-icon">
     <link rel="stylesheet" href="static/styles.css">
     <!-- Prism.js for Syntax Highlighting -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
@@ -13,9 +12,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
 
     <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+
 </head>
 
 <body>
+
     <header>
         <img src="static/logo.png" alt="DBQuery Logo" class="logo">
         <h1>Generative AI Assistant to your Database</h1>
@@ -29,19 +30,38 @@
                 Chat Assistant
                 <img src="static/reset.png" alt="Reset Session" class="reset-icon" onclick="resetSession()"
                     style="cursor: pointer; margin-left: 10px; width: 24px; height: 24px;">
-                    <p style="color: green; font-weight: 100; padding-left: 160px; font-size: 20px;">Connected to GCP Database</p>
-
+                <p id="connection-status" style="color: green; font-weight: 100; padding-left: 160px; font-size: 20px;">Select a database to connect</p>
             </h2>
             <div id="unified-input-container">
-                <select name="section" id="section-dropdown" onchange="fetchQuestions(this.value);" required>
-                    <option value="" disabled selected>Select Subject</option>
-                    {% for sec in section %}
-                    <option value="{{ sec }}">{{ sec }}</option>
+                <select name="database" id="database-dropdown" onchange="connectToDatabase(this.value);" required>
+                    <option value="" disabled selected>Select Database</option>
+                    {% for db in databases %}
+                    <option value="{{ db }}">{{ db }}</option>
                     {% endfor %}
                 </select>
+                
+                <select name="section" id="section-dropdown" onchange="fetchQuestions(this.value);" required disabled>
+                    <option value="" disabled selected>Select Subject</option>
+                    <!-- Will be populated by JavaScript -->
+                </select>
+                
+                <!-- Hidden templates for each database's sections -->
+                <!-- Replace your template divs with this to test -->
+                <select id="gcp-sections" style="display:none;">
+                    <option value="Demo">Demo</option>
+                </select>
 
-
-            </div>
+                <select id="postgresql-sections" style="display:none;">
+                    <option value="Finance">Finance</option>
+                    <option value="Customer Support">Customer Support</option>
+                    <option value="HR">HR</option>
+                    <option value="Healthcare">Healthcare</option>
+                    <option value="Insurance">Insurance</option>
+                    <option value="Inventory">Inventory</option>
+                    <option value="Legal">Legal</option>
+                    <option value="Sales">Sales</option>
+                </select>           
+             </div>
 
             <div id="chat-messages" class="chat-history">
                 <!-- Messages will be dynamically inserted here -->
@@ -58,10 +78,6 @@
 
             <!-- Unified Input Area -->
             <div id="unified-input-container">
-
-
-
-
                 <div class="chatinput-wrapper">
                     <input list="faq-questions" id="chat_user_query" name="user_query"
                         placeholder="Enter your query here..."
@@ -77,8 +93,6 @@
                     </button>
                     <img id="send-button" src="static\send.png" onclick="sendMessage()"></img>
                 </div>
-
-
             </div>
         </div>
 
@@ -150,11 +164,10 @@
                     </div>
                     <div id="chart-container" style="margin-top: 20px;"></div>
                 </div>
-
             </div>
         </div>
     </main>
     <script src="static/script.js"></script>
-</body>
 
+</body>
 </html>
