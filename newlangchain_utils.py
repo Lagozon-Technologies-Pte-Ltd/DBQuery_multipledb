@@ -1,4 +1,4 @@
-import os, base64
+import os
 import pandas as pd
 from google.cloud import bigquery
 
@@ -36,13 +36,21 @@ from langchain_openai import ChatOpenAI
 from table_details import table_chain as select_table
 from prompts1 import final_prompt1
 from prompts import final_prompt2
+
 from table_details import get_table_details , get_tables , itemgetter , create_extraction_chain_pydantic, Table 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 import configure
 # os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'Cloud_service.json'
-# client = bigquery.Client()
+db_user = os.getenv("db_user")
+db_password = os.getenv("db_password")
+db_host=os.getenv("db_host")
+#db_warehouse=os.getenv("db_warehouse")
+db_database=os.getenv("db_database")
+db_port=os.getenv("db_port")
+db_schema= os.getenv("db_schema")
+
 from sqlalchemy.exc import SQLAlchemyError
 def get_postgres_db(selected_subject, chosen_tables):
     print("SELECTED SUB",selected_subject,chosen_tables)
@@ -76,7 +84,7 @@ class BigQuerySQLDatabase(SQLDatabase):
                 "type": os.getenv('GOOGLE_CREDENTIALS_TYPE'),
                 "project_id": os.getenv('GOOGLE_CREDENTIALS_PROJECT_ID'),
                 "private_key_id": os.getenv('GOOGLE_CREDENTIALS_PRIVATE_KEY_ID'),
-                "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDln+0curmestQu\nEjLJWLY5YkCdmhlEZfWvCapN41hO6mS6nwVeYQw4ICP8ltbdsAZrsmzVgtf3GC+G\ngL99wG5WeEd/F1XPTemg8mKbMAf67nGWMc3z5yV3U4sGEnDglCVh1gHhDQC/px2K\nWopLVC/F46zQ+ERj8RjFCXExuZrzCExuFvRrT6dalDOqH8XFLeonnLoqJkPVgjvW\nfuuihW5pMiOfGyXksabfOc1GAzt4Ixbp0rsUL10ZqTPz+FOQ4WeJcs1slgRSQxHC\nmnTKx5kAT8MHEChGzhX9/BHDDzjTZL5isEybWjbKuUEcqCpc1FajFMT8NSDayifz\nEtHnxHhjAgMBAAECggEAAJYeec2r1d5/1Ttx3F3qf59TUJ/9qjwZu0SQQf2DOSvy\nuLHbYYGcUupehJ3LIBmiTIxyvEKrwibe3eJdLo5jQqZccY3OZbnN93T+8lHAMs4F\njkpRKj/WB0dF1uImLDXaTAPfM1lezVsgO71ESZ6L53fKBYrSXGLP/bVOfbcJTuwn\nFjAgNdpj2xYl+G9B+qkuNBHZ7uVnQ3w2l4zvRAWIIwtRj1qjCe7ynac9xizkrEMI\nae1WCKCZQbJGOvOl4Mu00cVvfspwzHfQZwkn+dVjN2+HNQTbzsM14CzDTmXGjD6e\n5/s3OYj7Tt4lV/PIVsf/y/zz3mtVV5D73yWQiZbiNQKBgQD9HfRuKnrKFrnyTy31\nRkSqZTfZh2smRqiR4RZssgZUCKD5GZtQ3/opWkh2HSBdQY8tLkxiu7wJ9WKmHMVV\nnUANqcBxXwsaLdMVEt4C7Y3aav8owIn+rLxD0BuQkjbX+7cx0UTnNhmg97HpYJr5\nNV+xF2LyviTemPpviWI2W6N9FwKBgQDoPXjR+L8ow0Sxhu5IjLWWp86X4KXQOCuY\n/Qbk+L3ibM8DRpgZ+nwH9zDWcGIS3Kk5t8pIQSYbthYBugkekUvtCt2dRyxIPLK9\nXnaCJFSbtpd1aaII/YF6Gp0yaap0B3+x9L4w1UrvLHK3xUcVdeb3DDCj0IVAqBg9\nqtLoktbmlQKBgQC1cTqdmh/pK79hnjbAov1n9CTD71n01yPRZrvPcRIuPP0/c4at\nw9CswgY9fQWNNAixh4XEJPVXYiq0Dt26UH3xDWVhH5Ny0bSFX7/781QDZT3Bdbu1\n7xcJuW15BgcAbnVU5cFxyIs4ozZKqDCPQh51cOFCRuFhG+IyABaCBtC8QwKBgHvw\nam0sIeBALYXMa5geN76Z+WAGTJdNkr7Hsgk6UiPnS6cE4qFikxSxL8gRG9XTGyCp\nW/OpiQva5e2v+bPteKadWN3ZoOFAO2diZT5Y4ypijHvljsrbd2DRmTjROV1IrzYq\nVeG7wozXnLVEPAZQ8JzBTafu3V4/Fwi6BGqICtXtAoGAb1QEQxRfq87q2q7DxIbm\nlxooi07TB1eevVw6r2qNRQQ5DHF+vb65Tw9ZV3E0g8/fJRD2gFC+yxgfI3iUVyyh\nIBBjKgCJOgp6zOS1L+RTNQswXxxLw+5B9j/oArHZ24j7YtKPLr+bcTNypzXn8dh8\n1U/HqFUTo1bsy8Pu35MXyco=\n-----END PRIVATE KEY-----",
+                "private_key":"-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDln+0curmestQu\nEjLJWLY5YkCdmhlEZfWvCapN41hO6mS6nwVeYQw4ICP8ltbdsAZrsmzVgtf3GC+G\ngL99wG5WeEd/F1XPTemg8mKbMAf67nGWMc3z5yV3U4sGEnDglCVh1gHhDQC/px2K\nWopLVC/F46zQ+ERj8RjFCXExuZrzCExuFvRrT6dalDOqH8XFLeonnLoqJkPVgjvW\nfuuihW5pMiOfGyXksabfOc1GAzt4Ixbp0rsUL10ZqTPz+FOQ4WeJcs1slgRSQxHC\nmnTKx5kAT8MHEChGzhX9/BHDDzjTZL5isEybWjbKuUEcqCpc1FajFMT8NSDayifz\nEtHnxHhjAgMBAAECggEAAJYeec2r1d5/1Ttx3F3qf59TUJ/9qjwZu0SQQf2DOSvy\nuLHbYYGcUupehJ3LIBmiTIxyvEKrwibe3eJdLo5jQqZccY3OZbnN93T+8lHAMs4F\njkpRKj/WB0dF1uImLDXaTAPfM1lezVsgO71ESZ6L53fKBYrSXGLP/bVOfbcJTuwn\nFjAgNdpj2xYl+G9B+qkuNBHZ7uVnQ3w2l4zvRAWIIwtRj1qjCe7ynac9xizkrEMI\nae1WCKCZQbJGOvOl4Mu00cVvfspwzHfQZwkn+dVjN2+HNQTbzsM14CzDTmXGjD6e\n5/s3OYj7Tt4lV/PIVsf/y/zz3mtVV5D73yWQiZbiNQKBgQD9HfRuKnrKFrnyTy31\nRkSqZTfZh2smRqiR4RZssgZUCKD5GZtQ3/opWkh2HSBdQY8tLkxiu7wJ9WKmHMVV\nnUANqcBxXwsaLdMVEt4C7Y3aav8owIn+rLxD0BuQkjbX+7cx0UTnNhmg97HpYJr5\nNV+xF2LyviTemPpviWI2W6N9FwKBgQDoPXjR+L8ow0Sxhu5IjLWWp86X4KXQOCuY\n/Qbk+L3ibM8DRpgZ+nwH9zDWcGIS3Kk5t8pIQSYbthYBugkekUvtCt2dRyxIPLK9\nXnaCJFSbtpd1aaII/YF6Gp0yaap0B3+x9L4w1UrvLHK3xUcVdeb3DDCj0IVAqBg9\nqtLoktbmlQKBgQC1cTqdmh/pK79hnjbAov1n9CTD71n01yPRZrvPcRIuPP0/c4at\nw9CswgY9fQWNNAixh4XEJPVXYiq0Dt26UH3xDWVhH5Ny0bSFX7/781QDZT3Bdbu1\n7xcJuW15BgcAbnVU5cFxyIs4ozZKqDCPQh51cOFCRuFhG+IyABaCBtC8QwKBgHvw\nam0sIeBALYXMa5geN76Z+WAGTJdNkr7Hsgk6UiPnS6cE4qFikxSxL8gRG9XTGyCp\nW/OpiQva5e2v+bPteKadWN3ZoOFAO2diZT5Y4ypijHvljsrbd2DRmTjROV1IrzYq\nVeG7wozXnLVEPAZQ8JzBTafu3V4/Fwi6BGqICtXtAoGAb1QEQxRfq87q2q7DxIbm\nlxooi07TB1eevVw6r2qNRQQ5DHF+vb65Tw9ZV3E0g8/fJRD2gFC+yxgfI3iUVyyh\nIBBjKgCJOgp6zOS1L+RTNQswXxxLw+5B9j/oArHZ24j7YtKPLr+bcTNypzXn8dh8\n1U/HqFUTo1bsy8Pu35MXyco=\n-----END PRIVATE KEY-----",
                 "client_email": os.getenv('GOOGLE_CREDENTIALS_CLIENT_EMAIL'),
                 "client_id": os.getenv('GOOGLE_CREDENTIALS_CLIENT_ID'),
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
@@ -138,10 +146,10 @@ class BigQuerySQLDatabase(SQLDatabase):
         return schema_info
 db = BigQuerySQLDatabase()
 
-table_info = db.get_table_info()
-#Save table_info to a text file
-with open("table_info.txt", "w") as file:
-    file.write(str(table_info))
+# table_info = db.get_table_info()
+# #Save table_info to a text file
+# with open("table_info.txt", "w") as file:
+#     file.write(str(table_info))
 
 print("Table info saved successfully to table_info.txt")
 # @cache_resource
@@ -174,7 +182,6 @@ def get_chain(question, _messages, selected_model, selected_subject, selected_da
     SQL_Statement = generate_query.invoke({"question": question, "messages": _messages})
     print(f"Generated SQL Statement before execution: {SQL_Statement}")
 
-
     # Override QuerySQLDataBaseTool validation
     class CustomQuerySQLDatabaseTool(QuerySQLDataBaseTool):
         def __init__(self, db):
@@ -192,7 +199,8 @@ def get_chain(question, _messages, selected_model, selected_subject, selected_da
     )
     if selected_database == "GCP":
         chosen_tables = db.get_table_names()
-
+        
+    
     return chain, chosen_tables, SQL_Statement, db
 
 # def read_table_info(file_path):
@@ -208,6 +216,8 @@ def get_chain(question, _messages, selected_model, selected_subject, selected_da
 # table_info_text = read_table_info("table_info.txt")  # Load the entire text of the file
 
 def invoke_chain(question, messages, selected_model, selected_subject, selected_database):
+    print("hiii")
+    print(question, messages, selected_model, selected_subject, selected_database)
     try:
         # if not is_relevant(question, table_info):
         #     return "I am DBQuery, a generative AI tool developed at Lagozon Technologies for database query generation. Please ask me queries related to your database.", [], {}, None
@@ -247,7 +257,7 @@ def invoke_chain(question, messages, selected_model, selected_subject, selected_
 
     except Exception as e:
         print("Error:", e)
-        return "Insufficient information to generate SQL Query.", [], {}, None
+        return "Insufficient information to generate SQL Query.", [], {}, e
 
 def create_history(messages):
     history = ChatMessageHistory()
