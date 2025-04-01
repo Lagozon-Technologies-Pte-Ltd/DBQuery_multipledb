@@ -79,18 +79,34 @@ def create_bigquery_uri(project_id, dataset_id):
 
 
 class BigQuerySQLDatabase(SQLDatabase):
-    def __init__(self, credentials_path):
+    def __init__(self):
         try:
-            with open(credentials_path, 'r') as f:
-                credentials_info = json.load(f)
+            # Create credentials dictionary from environment variables
+            credentials_info = {
+                "type": os.getenv('GOOGLE_CREDENTIALS_TYPE'),
+                "project_id": os.getenv('GOOGLE_CREDENTIALS_PROJECT_ID'),
+                "private_key_id": os.getenv('GOOGLE_CREDENTIALS_PRIVATE_KEY_ID'),
+                "private_key":"-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDln+0curmestQu\nEjLJWLY5YkCdmhlEZfWvCapN41hO6mS6nwVeYQw4ICP8ltbdsAZrsmzVgtf3GC+G\ngL99wG5WeEd/F1XPTemg8mKbMAf67nGWMc3z5yV3U4sGEnDglCVh1gHhDQC/px2K\nWopLVC/F46zQ+ERj8RjFCXExuZrzCExuFvRrT6dalDOqH8XFLeonnLoqJkPVgjvW\nfuuihW5pMiOfGyXksabfOc1GAzt4Ixbp0rsUL10ZqTPz+FOQ4WeJcs1slgRSQxHC\nmnTKx5kAT8MHEChGzhX9/BHDDzjTZL5isEybWjbKuUEcqCpc1FajFMT8NSDayifz\nEtHnxHhjAgMBAAECggEAAJYeec2r1d5/1Ttx3F3qf59TUJ/9qjwZu0SQQf2DOSvy\nuLHbYYGcUupehJ3LIBmiTIxyvEKrwibe3eJdLo5jQqZccY3OZbnN93T+8lHAMs4F\njkpRKj/WB0dF1uImLDXaTAPfM1lezVsgO71ESZ6L53fKBYrSXGLP/bVOfbcJTuwn\nFjAgNdpj2xYl+G9B+qkuNBHZ7uVnQ3w2l4zvRAWIIwtRj1qjCe7ynac9xizkrEMI\nae1WCKCZQbJGOvOl4Mu00cVvfspwzHfQZwkn+dVjN2+HNQTbzsM14CzDTmXGjD6e\n5/s3OYj7Tt4lV/PIVsf/y/zz3mtVV5D73yWQiZbiNQKBgQD9HfRuKnrKFrnyTy31\nRkSqZTfZh2smRqiR4RZssgZUCKD5GZtQ3/opWkh2HSBdQY8tLkxiu7wJ9WKmHMVV\nnUANqcBxXwsaLdMVEt4C7Y3aav8owIn+rLxD0BuQkjbX+7cx0UTnNhmg97HpYJr5\nNV+xF2LyviTemPpviWI2W6N9FwKBgQDoPXjR+L8ow0Sxhu5IjLWWp86X4KXQOCuY\n/Qbk+L3ibM8DRpgZ+nwH9zDWcGIS3Kk5t8pIQSYbthYBugkekUvtCt2dRyxIPLK9\nXnaCJFSbtpd1aaII/YF6Gp0yaap0B3+x9L4w1UrvLHK3xUcVdeb3DDCj0IVAqBg9\nqtLoktbmlQKBgQC1cTqdmh/pK79hnjbAov1n9CTD71n01yPRZrvPcRIuPP0/c4at\nw9CswgY9fQWNNAixh4XEJPVXYiq0Dt26UH3xDWVhH5Ny0bSFX7/781QDZT3Bdbu1\n7xcJuW15BgcAbnVU5cFxyIs4ozZKqDCPQh51cOFCRuFhG+IyABaCBtC8QwKBgHvw\nam0sIeBALYXMa5geN76Z+WAGTJdNkr7Hsgk6UiPnS6cE4qFikxSxL8gRG9XTGyCp\nW/OpiQva5e2v+bPteKadWN3ZoOFAO2diZT5Y4ypijHvljsrbd2DRmTjROV1IrzYq\nVeG7wozXnLVEPAZQ8JzBTafu3V4/Fwi6BGqICtXtAoGAb1QEQxRfq87q2q7DxIbm\nlxooi07TB1eevVw6r2qNRQQ5DHF+vb65Tw9ZV3E0g8/fJRD2gFC+yxgfI3iUVyyh\nIBBjKgCJOgp6zOS1L+RTNQswXxxLw+5B9j/oArHZ24j7YtKPLr+bcTNypzXn8dh8\n1U/HqFUTo1bsy8Pu35MXyco=\n-----END PRIVATE KEY-----",
+                "client_email": os.getenv('GOOGLE_CREDENTIALS_CLIENT_EMAIL'),
+                "client_id": os.getenv('GOOGLE_CREDENTIALS_CLIENT_ID'),
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/bqserviceacc%40prateekproject-450509.iam.gserviceaccount.com",
+                "universe_domain": "googleapis.com"
+            }
 
-            credentials = service_account.Credentials.from_service_account_info(credentials_info)
+            # Load credentials from dictionary
+            credentials = service_account.Credentials.from_service_account_info(
+                credentials_info,
+                scopes=["https://www.googleapis.com/auth/bigquery"]
+            )
+
             self.project_id = credentials_info["project_id"]
             self.client = bigquery.Client(credentials=credentials, project=self.project_id)
 
         except Exception as e:
-            raise ValueError(f"Error loading credentials from JSON file: {e}")
-
+            raise ValueError(f"Error loading credentials: {e}")
     def run(self, command: str):
         """Executes a SQL query and returns results as JSON."""
         try:
