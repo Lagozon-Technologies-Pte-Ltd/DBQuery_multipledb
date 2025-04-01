@@ -602,7 +602,7 @@ async def read_root(request: Request):
     # Pass dynamically populated dropdown options to the template
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "section": subject_areas1,
+        "subject_areas1": subject_areas1,
         "subject_areas2": subject_areas2,
         "tables": tables,        # Table dropdown based on database selection
         "question_dropdown": question_dropdown.split(','),  # Static questions from env
