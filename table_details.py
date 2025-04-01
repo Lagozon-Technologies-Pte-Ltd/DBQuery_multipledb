@@ -10,7 +10,9 @@ from langchain_openai import ChatOpenAI
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 llm = ChatOpenAI(model=configure.selected_models, temperature=0)
 from typing import List
-
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 # @st.cache_data
 def get_table_details(selected_subject = 'Demo'):
     # Read the CSV file into a DataFrame
