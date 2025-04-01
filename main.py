@@ -67,7 +67,8 @@ subject_areas2 = [          # For PostgreSQL-Azure
     "Finance", "Customer Support", "HR", "Healthcare",
     "Insurance", "Inventory", "Legal", "Sales"
 ]
-databases = ["GCP", "PostgreSQL-Azure"]question_dropdown = os.getenv('Question_dropdown')
+databases = ["GCP", "PostgreSQL-Azure"]
+question_dropdown = os.getenv('Question_dropdown')
 llm = ChatOpenAI(model='gpt-4o-mini', temperature=0)  # Adjust model as necessary
 from table_details import get_table_details  # Importing the function
 if 'messages' not in session_state:
