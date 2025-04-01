@@ -157,7 +157,7 @@ def get_chain(question, _messages, selected_model, selected_subject, selected_da
     llm = ChatOpenAI(model=selected_model, temperature=0)
 
     if selected_database=="GCP":
-            db = BigQuerySQLDatabase("Cloud_service.json")
+            db = BigQuerySQLDatabase()
     else:
         table_details = get_table_details(selected_subject)
         print("Selected subject, inside get chain",selected_subject)
