@@ -42,14 +42,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 import configure
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'Cloud_service.json'
-db_user = os.getenv("db_user")
-db_password = os.getenv("db_password")
-db_host=os.getenv("db_host")
-#db_warehouse=os.getenv("db_warehouse")
-db_database=os.getenv("db_database")
-db_port=os.getenv("db_port")
-db_schema= os.getenv("db_schema")
+
 
 client = bigquery.Client()
 from sqlalchemy.exc import SQLAlchemyError
