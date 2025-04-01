@@ -1,38 +1,23 @@
 import pandas as pd
 import os
-from io import StringIO
 import configure
 from operator import itemgetter
 from langchain.chains.openai_tools import create_extraction_chain_pydantic 
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_openai import ChatOpenAI 
-from azure.storage.blob import BlobServiceClient
-
 #from  langchain_openai.chat_models import with_structured_output
 
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 llm = ChatOpenAI(model=configure.selected_models, temperature=0)
 from typing import List
-# Azure Blob Storage settings
-AZURE_STORAGE_CONNECTION_STRING = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
-AZURE_CONTAINER_NAME = os.getenv('AZURE_CONTAINER_NAME')
 
-# Initialize the BlobServiceClient
-blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
-blob_client = blob_service_client.get_blob_client(container=AZURE_CONTAINER_NAME, blob="table_files")
-
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 # @st.cache_data
 def get_table_details(selected_subject = 'Demo'):
     # Read the CSV file into a DataFrame
-    csv_file_name = f"table_files/{selected_subject}.csv"
-    blob_client = blob_service_client.get_blob_client(container=AZURE_CONTAINER_NAME, blob=csv_file_name)
-    blob_content = blob_client.download_blob().content_as_text()
-
+    select_database_table_desc_csv = selected_subject + ".csv"
+    path = f'table_files/{select_database_table_desc_csv}'
     # table_description = pd.read_csv("database_table_descriptions.csv")
-    table_description = pd.read_csv(StringIO(blob_content))
+    table_description = pd.read_csv(path)
     # print("Selected Table description csv is ....." , select_database_table_desc_csv)
     table_docs = []
 
