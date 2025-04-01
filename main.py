@@ -3,7 +3,6 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.base import BaseHTTPMiddleware
 import plotly.graph_objects as go
 import plotly.express as px
 from langchain_openai import ChatOpenAI
@@ -11,7 +10,7 @@ import openai, yaml
 from configure import gauge_config
 import base64
 from pydantic import BaseModel
-from io import BytesIO, StringIO
+from io import BytesIO
 import os, csv
 import pandas as pd
 
@@ -24,50 +23,14 @@ from state import session_state, session_lock
 load_dotenv()  # Load environment variables from .env file
 from typing import Optional
 from starlette.middleware.sessions import SessionMiddleware  # Correct import
-from azure.storage.blob import BlobServiceClient
-
 import uuid
-import logging
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-
-class LoggingMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        # Log the request details
-        logging.info(f"Request: {request.method} {request.url}")
-        
-        # Call the next middleware or endpoint
-        response = await call_next(request)
-        
-        # Log the response details
-        logging.info(f"Response status: {response.status_code}")
-        
-        return response
-
-# Create FastAPI app
 app = FastAPI()
-
-# Add the middleware to the app
-app.add_middleware(LoggingMiddleware)
-
 app.add_middleware(SessionMiddleware, secret_key="your-secret-key")
 
 # Set up static files and templates
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
-# Azure Blob Storage settings
-AZURE_STORAGE_CONNECTION_STRING = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
-AZURE_CONTAINER_NAME = os.getenv('AZURE_CONTAINER_NAME')
-
-# Initialize the BlobServiceClient
-try:
-    blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
-    print("Blob service client initialized successfully.")
-except Exception as e:
-    print(f"Error initializing BlobServiceClient: {e}")
-    # Handle the error appropriately, possibly exiting the application
-    raise  # Re-raise the exception to prevent the app from starting
 
 class ChartRequest(BaseModel):
     """
@@ -271,15 +234,22 @@ def generate_chart_figure(data_df: pd.DataFrame, x_axis: str, y_axis: str, chart
 async def generate_chart(request: ChartRequest):
     """
     Generates a chart based on the provided request data.
+
+    Args:
+        request (ChartRequest): The chart request data.
+
+    Returns:
+        JSONResponse: A JSON response containing the chart as a JSON string, or an error message.
     """
     try:
+        # Extract fields from the request
         table_name = request.table_name
         x_axis = request.x_axis
         y_axis = request.y_axis
         chart_type = request.chart_type
 
+        # Debugging: Log received data
         print(f"Received Request: {request.dict()}")
-
         if "tables_data" not in session_state or table_name not in session_state["tables_data"]:
             return JSONResponse(
                 content={"error": f"No data found for table {table_name}"},
@@ -287,36 +257,20 @@ async def generate_chart(request: ChartRequest):
             )
 
         data_df = session_state["tables_data"][table_name]
-        print(f"Table {table_name} data: {data_df.head()}")  # Print first few rows of the DataFrame
-        print(f"X-axis data type: {data_df[x_axis].dtype}")
-        print(f"Y-axis data type: {data_df[y_axis].dtype}")
-
-        # Explicit type conversion (example)
-        try:
-            data_df[y_axis] = pd.to_numeric(data_df[y_axis], errors='coerce')
-            data_df = data_df.dropna(subset=[y_axis])
-        except Exception as e:
-            print(f"Error converting data to numeric: {e}")
-            return JSONResponse(
-                content={"error": f"Error converting data to numeric: {str(e)}"},
-                status_code=400
-            )
-
         print(f"Generating {chart_type} for Table: {table_name}, X: {x_axis}, Y: {y_axis}")
 
+        # Generate the chart
         fig = generate_chart_figure(data_df, x_axis, y_axis, chart_type)
 
         if fig:
             chart_json = fig.to_json()
-            #print(chart_json) # consider limiting this output as it can be very large
+            print(chart_json)
             return JSONResponse(content={"chart": chart_json})
         else:
             return JSONResponse(content={"error": "Unsupported chart type selected."}, status_code=400)
 
     except Exception as e:
-        import traceback
-        print(traceback.format_exc())
-        print(f"Chart generation error: {e}")
+        print(f"Chart generation error: {e}")  # Debugging print
         return JSONResponse(
             content={"error": f"An error occurred while generating the chart: {str(e)}"},
             status_code=500
@@ -382,10 +336,10 @@ async def transcribe_audio(file: UploadFile = File(...)):
     except Exception as e:
         return JSONResponse(content={"error": f"Error transcribing audio: {str(e)}"}, status_code=500)
 
-@app.get("/get_questions")
+@app.get("/get_questions/")
 async def get_questions(subject: str):
     """
-    Fetches questions from a CSV file in Azure Blob Storage based on the selected subject.
+    Fetches questions from a CSV file based on the selected subject.
 
     Args:
         subject (str): The subject to fetch questions for.
@@ -393,34 +347,26 @@ async def get_questions(subject: str):
     Returns:
         JSONResponse: A JSON response containing the list of questions or an error message.
     """
-    csv_file_name = f"table_files/{subject}_questions.csv"
-    blob_client = blob_service_client.get_blob_client(container=AZURE_CONTAINER_NAME, blob=csv_file_name)
+    csv_file = f"table_files/{subject}_questions.csv"
+    if not os.path.exists(csv_file):
+        return JSONResponse(
+            content={"error": f"The file {csv_file} does not exist."}, status_code=404
+        )
 
     try:
-        # Check if the blob exists
-        if not blob_client.exists():
-            print(f"file not found {csv_file_name}")
-            return JSONResponse(
-                content={"error": f"The file {csv_file_name} does not exist."}, status_code=404
-            )
-
-        # Download the blob content
-        blob_content = blob_client.download_blob().content_as_text()
-
-        # Read the CSV content
-        questions_df = pd.read_csv(StringIO(blob_content))
-        
+        # Read the questions from the CSV
+        questions_df = pd.read_csv(csv_file)
         if "question" in questions_df.columns:
             questions = questions_df["question"].tolist()
         else:
             questions = questions_df.iloc[:, 0].tolist()
-
         return {"questions": questions}
-
     except Exception as e:
         return JSONResponse(
             content={"error": f"An error occurred while reading the file: {str(e)}"}, status_code=500
-        )# Function to load prompts from YAML
+        )
+
+# Function to load prompts from YAML
 
 def load_prompts():
     """
@@ -469,23 +415,9 @@ async def submit_query(
     page: int = Query(1),
     records_per_page: int = Query(10),
     model: Optional[str] = Form("gpt-4o-mini")
-):
+):   
     selected_subject = section
     selected_database= database
-    if user_query.lower() == 'break':
-# Capture current state before reset
-        response_data = {
-            "user_query": user_query,
-            "chat_response": "Session restarted",
-            "history": session_state['messages'] + [{"role": "assistant", "content": "Session restarted"}]
-        }
-        
-        # Clear session state
-        session_state.clear()
-        session_state['messages'] = []  # Reinitialize messages array
-        
-        return JSONResponse(content=response_data)        
-    selected_subject = section
     session_state['user_query'] = user_query
 
     # Append user's message to chat history
@@ -540,9 +472,8 @@ async def submit_query(
             "role": "assistant",
             "content": f" {chat_insight}\n\n"
         })
-        for table_name, df in tables_data.items():
-            for col in df.select_dtypes(include=['number']).columns:
-                tables_data[table_name][col] = df[col].apply(format_number)        # **Step 5: Prepare Table Data**
+
+        # **Step 5: Prepare Table Data**
         tables_html = prepare_table_html(tables_data, page, records_per_page)
 
         # **Step 6: Append Table Data to Chat History**
@@ -565,11 +496,7 @@ async def submit_query(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing the prompt: {str(e)}")
 # Replace APIRouter with direct app.post
-def format_number(x):
-    if x.is_integer():
-        return f"{int(x):d}"
-    else:
-        return f"{x:.1f}"
+
 @app.post("/reset-session")
 async def reset_session():
     """
@@ -612,8 +539,7 @@ def prepare_table_html(tables_data, page, records_per_page):
     return tables_html
 
 @app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request, subject: Optional[str] = None  # Capture the selected subject
-):
+async def read_root(request: Request):
     """
     Renders the root HTML page.
 
@@ -625,24 +551,15 @@ async def read_root(request: Request, subject: Optional[str] = None  # Capture t
     """
     # Extract table names dynamically
     tables = []
-     # Fetch questions for the selected subject
-    if subject:
-        questions_response = await get_questions(subject)  # Use your existing function
-        if "questions" in questions_response:
-            questions = questions_response["questions"]
-        else:
-            questions = []
-    else:
-        questions = [] # Default: No subject selected
 
     # Pass dynamically populated dropdown options to the template
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "databases": databases,
-        "section": subject_areas1,
+        "databases": databases,                                     
+        "subject_areas1": subject_areas1,
         "subject_areas2": subject_areas2,
-        "tables": tables,   
-        "questions": questions              # Table dropdown based on database selection
+        "tables": tables,        # Table dropdown based on database selection
+        "question_dropdown": question_dropdown.split(','),  # Static questions from env
     })
 
 # Table data display endpoint
@@ -678,8 +595,7 @@ def display_table_with_styles(data, table_name, page_number, records_per_page):
                 }
             ])
     return styled_table.to_html()
-
-@app.get("/get_table_data")
+@app.get("/get_table_data/")
 async def get_table_data(
     table_name: str = Query(...),
     page_number: int = Query(1),
