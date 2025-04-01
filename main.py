@@ -3,30 +3,60 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
+import plotly.graph_objects as go
+import plotly.express as px
 from langchain_openai import ChatOpenAI
-import plotly.graph_objects as go, plotly.express as px
-import openai, yaml, os, csv,pandas as pd, base64, uuid
+import openai, yaml
 from configure import gauge_config
+import base64
 from pydantic import BaseModel
 from io import BytesIO, StringIO
+import os, csv
+import pandas as pd
+
 from langchain.chains.openai_tools import create_extraction_chain_pydantic
 from langchain_core.pydantic_v1 import Field
 from langchain_openai import ChatOpenAI
 from newlangchain_utils import *
 from dotenv import load_dotenv
 from state import session_state, session_lock
+load_dotenv()  # Load environment variables from .env file
 from typing import Optional
 from starlette.middleware.sessions import SessionMiddleware  # Correct import
 from azure.storage.blob import BlobServiceClient
 
-load_dotenv()  # Load environment variables from .env file
+import uuid
+import logging
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
+class LoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Log the request details
+        logging.info(f"Request: {request.method} {request.url}")
+        
+        # Call the next middleware or endpoint
+        response = await call_next(request)
+        
+        # Log the response details
+        logging.info(f"Response status: {response.status_code}")
+        
+        return response
+
+# Create FastAPI app
 app = FastAPI()
+
+# Add the middleware to the app
+app.add_middleware(LoggingMiddleware)
+
 app.add_middleware(SessionMiddleware, secret_key="your-secret-key")
 
 # Set up static files and templates
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
+# Azure Blob Storage settings
 AZURE_STORAGE_CONNECTION_STRING = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
 AZURE_CONTAINER_NAME = os.getenv('AZURE_CONTAINER_NAME')
 
@@ -179,7 +209,7 @@ class QueryInput(BaseModel):
 @app.post("/add_to_faqs")
 async def add_to_faqs(data: QueryInput):
     """
-    Adds a user query to the FAQ CSV file on Azure Blob Storage.
+    Adds a user query to the FAQ CSV file.
 
     Args:
         data (QueryInput): The user query.
@@ -188,32 +218,19 @@ async def add_to_faqs(data: QueryInput):
         JSONResponse: A JSON response indicating success or failure.
     """
     query = data.query.strip()
+
     if not query:
         raise HTTPException(status_code=400, detail="Invalid query!")
 
-    blob_name = 'table_files/Demo_questions.csv'
-
     try:
-        # Get the blob client
-        blob_client = blob_service_client.get_blob_client(container=AZURE_CONTAINER_NAME, blob=blob_name)
+        with open('table_files\Demo_questions.csv', mode='a', newline='', encoding='utf-8') as file:
+            writer = csv.writer(file)
+            writer.writerow([query])
 
-        try:
-            # Download the blob content
-            blob_content = blob_client.download_blob().content_as_text()
-        except ResourceNotFoundError:
-            # If the blob doesn't exist, create a new one with a header if needed
-            blob_content = "question\n"  # Replace with your actual header
-
-        # Append the new query to the existing CSV content
-        updated_csv_content = blob_content + f"{query}\n"  # Append new query
-
-        # Upload the updated CSV content back to Azure Blob Storage
-        blob_client.upload_blob(updated_csv_content.encode('utf-8'), overwrite=True)
-
-        return {"message": "Query added to FAQs successfully and uploaded to Azure Blob Storage!"}
-
+        return {"message": "Query added to FAQs successfully!"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
 def generate_chart_figure(data_df: pd.DataFrame, x_axis: str, y_axis: str, chart_type: str):
     """
     Generates a Plotly figure based on the specified chart type.
@@ -333,14 +350,7 @@ async def download_table(table_name: str):
     )
     response.headers["Content-Disposition"] = f"attachment; filename={table_name}.xlsx"
     return response
-# Replace APIRouter with direct app.post
-def format_number(x):
-    if isinstance(x, int):  # Check if x is an integer
-        return f"{x:d}"
-    elif isinstance(x, float) and x.is_integer():  # Check if x is a float and is equivalent to an integer
-        return f"{int(x):d}"
-    else:
-        return f"{x:.1f}"  # For other floats, format with one decimal place
+
 @app.post("/transcribe-audio/")
 async def transcribe_audio(file: UploadFile = File(...)):
     """
@@ -410,9 +420,7 @@ async def get_questions(subject: str):
     except Exception as e:
         return JSONResponse(
             content={"error": f"An error occurred while reading the file: {str(e)}"}, status_code=500
-        )
-
-# Function to load prompts from YAML
+        )# Function to load prompts from YAML
 
 def load_prompts():
     """
@@ -461,9 +469,23 @@ async def submit_query(
     page: int = Query(1),
     records_per_page: int = Query(10),
     model: Optional[str] = Form("gpt-4o-mini")
-):   
+):
     selected_subject = section
     selected_database= database
+    if user_query.lower() == 'break':
+# Capture current state before reset
+        response_data = {
+            "user_query": user_query,
+            "chat_response": "Session restarted",
+            "history": session_state['messages'] + [{"role": "assistant", "content": "Session restarted"}]
+        }
+        
+        # Clear session state
+        session_state.clear()
+        session_state['messages'] = []  # Reinitialize messages array
+        
+        return JSONResponse(content=response_data)        
+    selected_subject = section
     session_state['user_query'] = user_query
 
     # Append user's message to chat history
@@ -518,8 +540,9 @@ async def submit_query(
             "role": "assistant",
             "content": f" {chat_insight}\n\n"
         })
-
-        # **Step 5: Prepare Table Data**
+        for table_name, df in tables_data.items():
+            for col in df.select_dtypes(include=['number']).columns:
+                tables_data[table_name][col] = df[col].apply(format_number)        # **Step 5: Prepare Table Data**
         tables_html = prepare_table_html(tables_data, page, records_per_page)
 
         # **Step 6: Append Table Data to Chat History**
@@ -541,9 +564,12 @@ async def submit_query(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing the prompt: {str(e)}")
-
 # Replace APIRouter with direct app.post
-
+def format_number(x):
+    if x.is_integer():
+        return f"{int(x):d}"
+    else:
+        return f"{x:.1f}"
 @app.post("/reset-session")
 async def reset_session():
     """
@@ -586,7 +612,8 @@ def prepare_table_html(tables_data, page, records_per_page):
     return tables_html
 
 @app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
+async def read_root(request: Request, subject: Optional[str] = None  # Capture the selected subject
+):
     """
     Renders the root HTML page.
 
@@ -598,14 +625,24 @@ async def read_root(request: Request):
     """
     # Extract table names dynamically
     tables = []
+     # Fetch questions for the selected subject
+    if subject:
+        questions_response = await get_questions(subject)  # Use your existing function
+        if "questions" in questions_response:
+            questions = questions_response["questions"]
+        else:
+            questions = []
+    else:
+        questions = [] # Default: No subject selected
 
     # Pass dynamically populated dropdown options to the template
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "subject_areas1": subject_areas1,
+        "databases": databases,
+        "section": subject_areas1,
         "subject_areas2": subject_areas2,
-        "tables": tables,        # Table dropdown based on database selection
-        "question_dropdown": question_dropdown.split(','),  # Static questions from env
+        "tables": tables,   
+        "questions": questions              # Table dropdown based on database selection
     })
 
 # Table data display endpoint
@@ -625,10 +662,9 @@ def display_table_with_styles(data, table_name, page_number, records_per_page):
     start_index = (page_number - 1) * records_per_page
     end_index = start_index + records_per_page
     page_data = data.iloc[start_index:end_index]
-
-    # Ensure that the index always starts from 1 for each page
-    page_data.index = range(start_index + 1, start_index + 1 + len(page_data))
-
+    # Reset index and add 1 to start from 1 instead of 0
+    page_data = page_data.reset_index(drop=True)
+    page_data.index = page_data.index + 1
     styled_table = page_data.style.set_table_attributes('style="border: 2px solid black; border-collapse: collapse;"') \
         .set_table_styles(
             [{
@@ -641,11 +677,9 @@ def display_table_with_styles(data, table_name, page_number, records_per_page):
                     'props': [('border', '1px solid black')]
                 }
             ])
-    
     return styled_table.to_html()
 
-
-@app.get("/get_table_data/")
+@app.get("/get_table_data")
 async def get_table_data(
     table_name: str = Query(...),
     page_number: int = Query(1),
