@@ -529,6 +529,38 @@ function chooseExampleQuestion() {
 /**
  *
  */
+async function submitFeedback(tableName, feedbackType) {
+    const userQueryInput = document.getElementById("chat_user_query");
+    const userQuery = userQueryInput.value;
+    const sqlQueryDisplay = document.getElementById("sql_query_display");
+    const sqlQuery = sqlQueryDisplay.textContent.replace('SQL Query:', '').trim();
+
+    try {
+        const response = await fetch("/submit_feedback", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                table_name: tableName,
+                feedback_type: feedbackType,
+                user_query: userQuery,
+                sql_query: sqlQuery
+            }),
+        });
+
+        const data = await response.json();
+        const feedbackMessageElement = document.getElementById(`${tableName}_feedback_message`);
+        feedbackMessageElement.textContent = data.message; // Display server's message
+        feedbackMessageElement.style.color = (data.success) ? 'green' : 'red'; // Color code the message
+    } catch (error) {
+        console.error("Error submitting feedback:", error);
+        const feedbackMessageElement = document.getElementById(`${tableName}_feedback_message`);
+        feedbackMessageElement.textContent = "Failed to submit feedback.";
+        feedbackMessageElement.style.color = 'red';
+    }
+}
+
 function updatePageContent(data) {
     const userQueryDisplay = document.getElementById("user_query_display");
     const sqlQueryContent = document.getElementById("sql-query-content"); // Get the modal content
@@ -549,6 +581,11 @@ function updatePageContent(data) {
                 <div id="${table.table_name}_table">${table.table_html}</div>
                 <div id="${table.table_name}_pagination"></div>
                 <div id="${table.table_name}_error"></div>
+                <div class="feedback-section">
+                    <button class="like-button" data-table="${table.table_name}" onclick="submitFeedback('${table.table_name}', 'like')">Like</button>
+                    <button class="dislike-button" data-table="${table.table_name}" onclick="submitFeedback('${table.table_name}', 'dislike')">Dislike</button>
+                    <span id="${table.table_name}_feedback_message"></span>
+                </div>
             `;
 
             tablesContainer.appendChild(tableWrapper);
