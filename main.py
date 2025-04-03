@@ -385,6 +385,54 @@ def load_prompts():
 
 # Load prompts at startup
 PROMPTS = load_prompts()
+@app.post("/submit_feedback/")
+async def submit_feedback(request: Request):
+    data = await request.json() # Corrected for FastAPI
+
+    table_name = data.get("table_name")
+    feedback_type = data.get("feedback_type")
+    user_query = data.get("user_query")
+    sql_query = data.get("sql_query")
+
+    if not table_name or not feedback_type:
+        return JSONResponse(content={"success": False, "message": "Table name and feedback type are required."}, status_code=400)
+
+    try:
+        # Create database connection
+        engine = create_engine(
+        f'postgresql+psycopg2://{quote_plus(db_user)}:{quote_plus(db_password)}@{db_host}:{db_port}/{db_database}'
+        )
+        Session = sessionmaker(bind=engine)
+        session = Session()
+
+        # Sanitize input (Escape single quotes)
+        table_name = escape_single_quotes(table_name)
+        user_query = escape_single_quotes(user_query)
+        sql_query = escape_single_quotes(sql_query)
+        feedback_type = escape_single_quotes(feedback_type)
+
+        # Insert feedback into database
+        insert_query = text(f"""
+        INSERT INTO lz_feedbacks (department, user_query, sql_query, table_name, data, feedback_type, feedback)
+        VALUES ('unknown', :user_query, :sql_query, :table_name, 'no data', :feedback_type, 'user feedback')
+        """)
+
+        session.execute(insert_query, {
+        "table_name": table_name,
+        "user_query": user_query,
+        "sql_query": sql_query,
+        "feedback_type": feedback_type
+        })
+
+        session.commit()
+        session.close()
+
+        return JSONResponse(content={"success": True, "message": "Feedback submitted successfully!"})
+
+    except Exception as e:
+        session.rollback()
+        session.close()
+        return JSONResponse(content={"success": False, "message": f"Error submitting feedback: {str(e)}"}, status_code=500)
 
 @app.get("/get-tables/")
 async def get_tables(selected_section: str):
