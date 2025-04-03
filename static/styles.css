@@ -19,6 +19,17 @@ body {
     gap: 15px; /* Adds spacing between buttons */
     margin-top: 15px; /* Adds spacing between the table and buttons */
 }
+.feedback-section {
+    margin-top: 10px;
+    text-align: center;
+}
+
+.like-button,
+.dislike-button {
+    padding: 5px 10px;
+    margin: 0 5px;
+    cursor: pointer;
+}
 
 #add-to-faqs-btn {
     background: radial-gradient(50% 50% at 50% 50%, rgb(183.48, 168.62, 249.71) 4%, rgb(136.38, 111.28, 248.21) 100%);
