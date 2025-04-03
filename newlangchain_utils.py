@@ -52,6 +52,82 @@ db_port=os.getenv("db_port")
 db_schema= os.getenv("db_schema")
 
 from sqlalchemy.exc import SQLAlchemyError
+def insert_feedback(department, user_query, sql_query, table_name, data, feedback_type="user not reacted", feedback="user not given feedback"):
+    engine = create_engine(f'postgresql+psycopg2://{quote_plus(db_user)}:{quote_plus(db_password)}@{db_host}:{db_port}/{db_database}')
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    
+    insert_query = text("""
+        INSERT INTO lz_feedbacks (department, user_query, sql_query, table_name, data, feedback_type, feedback)
+        VALUES (:department, :user_query, :sql_query, :table_name, :data, :feedback_type, :feedback)
+    """)
+
+    try:
+        session.execute(insert_query, {
+            "department": department,
+            "user_query": user_query,
+            "sql_query": sql_query,
+            "table_name": table_name,
+            "data": data,
+            "feedback_type": feedback_type,
+            "feedback": feedback
+        })
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        raise e  # Propagate the exception
+    finally:
+        session.close()
+
+def save_votes(table_name, votes):
+    engine = create_engine(f'postgresql+psycopg2://{quote_plus(db_user)}:{quote_plus(db_password)}@{db_host}:{db_port}/{db_database}')
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    
+    execute_query = text("""
+        INSERT INTO lz_votes (table_name, upvotes, downvotes) 
+        VALUES (:table_name, :upvotes, :downvotes)
+        ON CONFLICT (table_name) 
+        DO UPDATE SET 
+            upvotes = EXCLUDED.upvotes,
+            downvotes = EXCLUDED.downvotes
+    """)
+
+    try:
+        session.execute(execute_query, {
+            "table_name": table_name,
+            "upvotes": votes["upvotes"],
+            "downvotes": votes["downvotes"]
+        })
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        raise e  # Propagate the exception
+    finally:
+        session.close()
+
+def load_votes(table_name):
+    engine = create_engine(f'postgresql+psycopg2://{quote_plus(db_user)}:{quote_plus(db_password)}@{db_host}:{db_port}/{db_database}')
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    
+    execute_query = text("""
+        SELECT upvotes, downvotes 
+        FROM lz_votes 
+        WHERE table_name = :table_name
+    """)
+
+    try:
+        result = session.execute(execute_query, {"table_name": table_name}).fetchone()
+        if result:
+            return {"upvotes": result[0], "downvotes": result[1]}
+        else:
+            return {"upvotes": 0, "downvotes": 0}
+    except Exception as e:
+        raise e  # Propagate the exception
+    finally:
+        session.close()
+
 def get_postgres_db(selected_subject, chosen_tables):
     print("SELECTED SUB",selected_subject,chosen_tables)
     try:
