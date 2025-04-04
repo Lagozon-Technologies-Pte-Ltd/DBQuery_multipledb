@@ -145,30 +145,30 @@ document.addEventListener("DOMContentLoaded", function () {
 function connectToDatabase(selectedDatabase) {
     const sectionDropdown = document.getElementById('section-dropdown');
     const connectionStatus = document.getElementById('connection-status');
-    
+
     // Clear previous options
     sectionDropdown.innerHTML = '<option value="" disabled selected>Select Subject</option>';
-    
+
     // Update connection status
     connectionStatus.textContent = `Connecting to ${selectedDatabase}...`;
     connectionStatus.style.color = 'orange';
-    
+
     // Get the appropriate section template based on database selection
     let sectionTemplateId;
     let sections = [];
-    
+
     if (selectedDatabase === 'GCP') {
         sections = ['Demo']; // Directly specify GCP sections
     } else if (selectedDatabase == 'PostgreSQL-Azure') {
         sections = [
-            'Finance', 'Customer Support', 'HR', 'Healthcare', 
+            'Finance', 'Customer Support', 'HR', 'Healthcare',
             'Insurance', 'Inventory', 'Legal', 'Sales'
         ]; // Directly specify PostgreSQL sections
     } else {
         console.error('Unknown database selected:', selectedDatabase);
         return;
     }
-    
+
     // Add sections to dropdown
     sections.forEach(section => {
         const option = document.createElement('option');
@@ -176,15 +176,15 @@ function connectToDatabase(selectedDatabase) {
         option.textContent = section;
         sectionDropdown.appendChild(option);
     });
-    
+
     // Enable the dropdown and update status
     sectionDropdown.disabled = false;
     connectionStatus.textContent = `Connected to ${selectedDatabase}`;
     connectionStatus.style.color = 'green';
-    
+
     // Reset any previous selections
     sectionDropdown.selectedIndex = 0;
-    
+
     // // Fetch questions for the default section (if needed)
     // if (sections.length > 0) {
     //     fetchQuestions(sections[0]);
@@ -192,27 +192,40 @@ function connectToDatabase(selectedDatabase) {
 }
 
 // Initialize event listeners for database dropdown
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Database dropdown initialization
-    const dbDropdown = document.getElementById('database-dropdown');
-    if (dbDropdown) {
-        // Set initial state
-        document.getElementById('connection-status').textContent = "Select a database";
-        
-        // Add change handler
-        dbDropdown.addEventListener('change', function() {
-            connectToDatabase(this.value);
-        });
+    const savedDatabase = sessionStorage.getItem('selectedDatabase');
+    const savedSection = sessionStorage.getItem('selectedSection');
+    if (savedDatabase) {
+        document.getElementById('database-dropdown').value = savedDatabase;
+        connectToDatabase(savedDatabase);
+    }
+    
+    if (savedSection) {
+        document.getElementById('section-dropdown').value = savedSection;
+        fetchQuestions(savedSection);
     }
 
     // Other initializations
     document.getElementById("chat-mic-button").addEventListener("click", toggleRecording);
-    document.getElementById("chat_user_query").addEventListener("keyup", function(event) {
+    document.getElementById("chat_user_query").addEventListener("keyup", function (event) {
         if (event.key === "Enter") sendMessage();
     });
-    
+
     // Set default tab
     document.getElementsByClassName("tablinks")[0]?.click();
+});
+
+// Add this to your DOMContentLoaded event listener
+document.getElementById('section-dropdown').addEventListener('change', function() {
+    const selectedDatabase = document.getElementById('database-dropdown').value;
+    const selectedSection = this.value;
+    
+    if (selectedDatabase && selectedSection) {
+        sessionStorage.setItem('selectedDatabase', selectedDatabase);
+        sessionStorage.setItem('selectedSection', selectedSection);
+        location.reload();
+    }
 });
 
 // Your existing sendMessage function with modifications
@@ -227,8 +240,25 @@ async function sendMessage() {
 
     // Get selected database and section
     const selectedDatabase = document.getElementById('database-dropdown').value;
+    
+    // Get current database and section from session storage
+    const currentDatabase = sessionStorage.getItem('selectedDatabase');
+    const currentSection = sessionStorage.getItem('selectedSection');
+    if (selectedDatabase && selectedDatabase !== currentDatabase) {
+        // Store the selected database in sessionStorage before reloading
+        sessionStorage.setItem('selectedDatabase', selectedDatabase);
+        location.reload();
+        return;
+    }
     const selectedSection = document.getElementById('section-dropdown').value;
-
+    if ((selectedDatabase && selectedDatabase !== currentDatabase) || 
+    (selectedSection && selectedSection !== currentSection)) {
+    // Store the new selections in sessionStorage
+    sessionStorage.setItem('selectedDatabase', selectedDatabase);
+    sessionStorage.setItem('selectedSection', selectedSection);
+    location.reload();
+    return;
+}
     // Validate selection
     if (!selectedDatabase || !selectedSection) {
         alert("Please select both a database and a subject area");
@@ -371,7 +401,7 @@ async function toggleRecording() {
 
 
 // Initialize mic button listener
-document.getElementById("chat-mic-button").addEventListener("click", toggleRecording);async function toggleRecording() {
+document.getElementById("chat-mic-button").addEventListener("click", toggleRecording); async function toggleRecording() {
     const micButton = document.getElementById("chat-mic-button");
 
     if (!isRecording) {
@@ -499,36 +529,6 @@ async function fetchQuestions(selectedSection) {
         }
     }
 }
-
-// // Ensure that the function is called when the section is selected
-// document.getElementById("section-dropdown")?.addEventListener("change", (event) => {
-//     fetchQuestions(event.target.value);
-// });
-
-/**
- *
- */
-function clearQuery() {
-    const userQueryInput = document.getElementById("chat_user_query"); // changed id
-    userQueryInput.value = ""
-
-}
-/**
- *
- */
-function chooseExampleQuestion() {
-    const questionDropdown = document.getElementById("questions-dropdown");
-    const selectedQuestion = questionDropdown.options[questionDropdown.selectedIndex].text;
-    if (!selectedQuestion || selectedQuestion === "Select a Question") {
-        alert("Please select a question.");
-        return;
-    }
-    const userQueryInput = document.getElementById("chat_user_query"); // changed id
-    userQueryInput.value = selectedQuestion;
-}
-/**
- *
- */
 async function submitFeedback(tableName, feedbackType) {
     const userQueryInput = document.getElementById("chat_user_query");
     const userQuery = userQueryInput.value;
@@ -560,13 +560,41 @@ async function submitFeedback(tableName, feedbackType) {
         feedbackMessageElement.style.color = 'red';
     }
 }
+// // Ensure that the function is called when the section is selected
+// document.getElementById("section-dropdown")?.addEventListener("change", (event) => {
+//     fetchQuestions(event.target.value);
+// });
 
+/**
+ *
+ */
+function clearQuery() {
+    const userQueryInput = document.getElementById("chat_user_query"); // changed id
+    userQueryInput.value = ""
+
+}
+/**
+ *
+ */
+function chooseExampleQuestion() {
+    const questionDropdown = document.getElementById("questions-dropdown");
+    const selectedQuestion = questionDropdown.options[questionDropdown.selectedIndex].text;
+    if (!selectedQuestion || selectedQuestion === "Select a Question") {
+        alert("Please select a question.");
+        return;
+    }
+    const userQueryInput = document.getElementById("chat_user_query"); // changed id
+    userQueryInput.value = selectedQuestion;
+}
+/**
+ *
+ */
 function updatePageContent(data) {
     const userQueryDisplay = document.getElementById("user_query_display");
     const sqlQueryContent = document.getElementById("sql-query-content"); // Get the modal content
     const tablesContainer = document.getElementById("tables_container");
     const xlsxbtn = document.getElementById("xlsx-btn"); // Excel button container
-    const faqbtn =  document.getElementById("add-to-faqs-btn");
+    const faqbtn = document.getElementById("add-to-faqs-btn");
     // Update user query text
     userQueryDisplay.querySelector('span').textContent = data.user_query || "";
 
