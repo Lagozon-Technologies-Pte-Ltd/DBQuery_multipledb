@@ -493,17 +493,53 @@ document.getElementById("table-dropdown")?.addEventListener("change", (event) =>
  * Resets the session state by making a POST request to the backend.
  */
 function resetSession() {
+    // Show a confirmation dialog first
+    const confirmed = confirm("Are you sure you want to reset your session? This will clear all your current data.");
+    
+    if (!confirmed) return;
+
+    // Show loading state (assuming you have a way to display this)
+    showLoadingIndicator("Resetting session...");
+
     fetch('/reset-session', { method: 'POST' })
         .then(response => {
             if (response.ok) {
-                alert("Session reset successfully!");
-                // Optionally, reload the page to ensure all UI elements are reset
-                location.reload();
+                // More friendly success message
+                showToastMessage("Session reset successfully! Refreshing your page...", 'success');
+                
+                // Brief delay before reload to let user see the message
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
             } else {
-                alert("Failed to reset session.");
+                // More detailed error message
+                showToastMessage("We couldn't reset your session. Please try again later.", 'error');
             }
         })
-        .catch(error => console.error("Error resetting session:", error));
+        .catch(error => {
+            console.error("Error resetting session:", error);
+            showToastMessage("A network error occurred. Please check your connection and try again.", 'error');
+        })
+        .finally(() => {
+            hideLoadingIndicator();
+        });
+}
+
+// Helper functions for UI feedback (you'll need to implement these or use a library)
+function showToastMessage(message, type = 'info') {
+    // Implement or replace with your preferred notification system
+    // Example using a library: Toastify, SweetAlert, etc.
+    alert(message); // Fallback - replace with better UI
+}
+
+function showLoadingIndicator(message) {
+    // Could be a spinner with text, progress bar, etc.
+    console.log("Loading: " + message); // Fallback
+}
+
+function hideLoadingIndicator() {
+    // Hide whatever loading indicator you showed
+    console.log("Loading complete"); // Fallback
 }
 
 async function fetchQuestions(selectedSection) {
