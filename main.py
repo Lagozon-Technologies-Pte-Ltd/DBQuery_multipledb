@@ -465,7 +465,21 @@ async def submit_query(
     page: int = Query(1),
     records_per_page: int = Query(10),
     model: Optional[str] = Form("gpt-4o-mini")
-):   
+):  
+    if user_query.lower() == 'break':
+# Capture current state before reset
+        response_data = {
+            "user_query": user_query,
+            "chat_response": "Session restarted",
+            "history": session_state['messages'] + [{"role": "assistant", "content": "Session restarted"}]
+        }
+        
+        # Clear session state
+        session_state.clear()
+        session_state['messages'] = []  # Reinitialize messages array
+        
+        return JSONResponse(content=response_data)
+
     selected_subject = section
     selected_database= database
     session_state['user_query'] = user_query
