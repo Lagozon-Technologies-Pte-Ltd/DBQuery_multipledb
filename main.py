@@ -413,10 +413,10 @@ async def submit_feedback(request: Request):
         feedback_type = escape_single_quotes(feedback_type)
 
         # Insert feedback into database
-        insert_query = text(f"""
+        insert_query = f"""
         INSERT INTO lz_feedbacks (department, user_query, sql_query, table_name, data, feedback_type, feedback)
         VALUES ('unknown', :user_query, :sql_query, :table_name, 'no data', :feedback_type, 'user feedback')
-        """)
+        """
 
         session.execute(insert_query, {
         "table_name": table_name,
