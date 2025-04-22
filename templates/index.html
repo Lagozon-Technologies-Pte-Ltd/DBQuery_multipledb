@@ -8,8 +8,11 @@
     <link rel="stylesheet" href="static/styles.css">
     <!-- Prism.js for Syntax Highlighting -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <link rel="shortcut icon" href="static\favicon.png" type="image/x-icon">
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
 
     <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
 
@@ -98,7 +101,22 @@
 
         <!-- Query Results (Right Side) -->
         <div style="width:55%; padding: 15px;">
-            <h2>Query Details</h2>
+            <div class="query-details-header">
+                <h2 class="query-title">Query Details</h2>
+                <div class="dev-mode-toggle-container">
+                    <label class="switch">
+                        <input type="checkbox" id="devModeToggle" onchange="toggleDevMode()">
+                        <span class="slider round"></span>
+                    </label>
+                    <span class="dev-mode-label">Dev Mode</span>
+                </div>
+            </div>
+            <!-- Hidden prompt area -->
+            <div id="devPromptPanel" class="dev-prompt" style="display: none;">
+                <strong>Prompt used for generation:</strong>
+                <pre>{{ rawPrompt }}</pre>
+            </div>
+
             <div id="query-results">
                 <!-- Tab Navigation -->
                 <div class="tab">
@@ -120,8 +138,24 @@
                             <pre><code id="sql-query-content" class="language-sql"></code></pre>
                         </div>
                     </div>
+                    <div id="lang-prompt-popup" class="modal">
+                        <div class="modal-content">
+                            <span class="close-btn" onclick="closepromptPopup()">&times;</span>
+                            <h2>Prompt</h2>
+                            <pre><code id="lang-prompt-content" ></code></pre>
+                        </div>
+                    </div>
+                    <div id="interp-prompt-popup" class="modal">
+                        <div class="modal-content">
+                            <span class="close-btn" onclick="closeinterpromptPopup()">&times;</span>
+                            <h2>Prompt</h2>
+                            <pre><code id="interp-prompt-content" ></code></pre>
+                        </div>
+                    </div>
+
                     <div id="tables_container"></div>
                     <div id="xlsx-btn"></div>
+                    <div id="email-btn"></div>
                     <p id="faq-message" style="color: green;"></p>
                 </div>
 
