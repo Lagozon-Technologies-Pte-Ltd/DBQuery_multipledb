@@ -5,6 +5,17 @@ let isRecording = false;
 let mediaRecorder;
 let audioChunks = [];
 let originalButtonHTML = ""; // Store the original button HTML
+window.onload = function () {
+    // Reset variables
+    const loadingDiv = document.getElementById('loading');
+    let tableName = undefined;
+    let isRecording = false;
+    let mediaRecorder = undefined;
+    let audioChunks = [];
+    let originalButtonHTML = "";
+
+    console.log("Variables reset on page reload");
+};
 async function loadTableColumns(table_name) {
     console.log("Loading columns for table:", table_name); // Debug statement
     const selectedTable = table_name;
@@ -140,6 +151,42 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementsByClassName("tablinks")[0].click(); // Open the first tab by default
 });
 
+function toggleDevMode() {
+    const devModeToggle = document.getElementById('devModeToggle');
+    const xlsxbtn = document.getElementById('xlsx-btn'); // Excel button container
+    let interpBtn = document.getElementById('interpBtn'); // check if the buttons already exist
+    let langchainBtn = document.getElementById('langchainBtn');
+
+    if (devModeToggle.checked) {
+        // Create buttons if they don't exist
+        if (!interpBtn) {
+            interpBtn = document.createElement('button');
+            interpBtn.id = 'interpBtn';
+            interpBtn.textContent = 'Interpretation Prompt';
+            interpBtn.className = 'dev-mode-btn';  // Add class for styling
+            xlsxbtn.appendChild(interpBtn);
+            interpBtn.onclick = showinterPrompt;
+        }
+        if (!langchainBtn) {
+            langchainBtn = document.createElement('button');
+            langchainBtn.id = 'langchainBtn';
+            langchainBtn.textContent = 'Langchain Prompt';
+            langchainBtn.className = 'dev-mode-btn';  // Add class for styling
+            xlsxbtn.appendChild(langchainBtn);
+            // Add click event to open popup with text file content
+            langchainBtn.onclick = showLangPromptPopup;
+
+        }
+    } else {
+        // Remove buttons if they exist
+        if (interpBtn) {
+            interpBtn.remove();
+        }
+        if (langchainBtn) {
+            langchainBtn.remove();
+        }
+    }
+}
 
 // Database and Section Dropdown Handling
 function connectToDatabase(selectedDatabase) {
@@ -300,11 +347,15 @@ async function sendMessage() {
             document.getElementById("sql-query-content").textContent = data.query;
             botResponse = data.chat_response || "Here's what I found:";
         }
+        console.log("interprompt: ", data.interprompt)
+        document.getElementById("lang-prompt-content").textContent = data.langprompt;
+        document.getElementById("interp-prompt-content").textContent = data.interprompt;
 
         chatMessages.innerHTML += `
             <div class="message ai-message">
                 <div class="message-content">
-                    ${botResponse}
+                    LLM Interpretation: ${data.llm_response}<br>
+                    Insight: ${botResponse}
                 </div>
             </div>
         `;
@@ -630,6 +681,7 @@ function updatePageContent(data) {
     const sqlQueryContent = document.getElementById("sql-query-content"); // Get the modal content
     const tablesContainer = document.getElementById("tables_container");
     const xlsxbtn = document.getElementById("xlsx-btn"); // Excel button container
+    const emailbtn = document.getElementById("email-btn"); // Excel button container
     const faqbtn = document.getElementById("add-to-faqs-btn");
     // Update user query text
     userQueryDisplay.querySelector('span').textContent = data.user_query || "";
@@ -674,6 +726,24 @@ function updatePageContent(data) {
     } else {
         tablesContainer.innerHTML = "<p>No tables to display.</p>";
     }
+   // Add copy button in top-right of popup
+   const copyButton = document.createElement('button');
+   copyButton.innerHTML = '<i class="fas fa-copy"></i>';
+   copyButton.className = 'copy-btn-popup';
+   copyButton.addEventListener('click', () => {
+       const sqlQueryText = document.getElementById("sql-query-content").textContent;
+       navigator.clipboard.writeText(sqlQueryText)
+           .then(() => {
+               alert('SQL query copied to clipboard!');
+           })
+           .catch(err => {
+               console.error('Failed to copy: ', err);
+               alert('Failed to copy SQL query to clipboard.');
+           });
+   });
+
+   // Ensure this is inside the modal
+   sqlQueryContent.parentNode.appendChild(copyButton);
 
     // Add the "View SQL Query" button BELOW the Download Excel button
     if (data.query) {
@@ -690,9 +760,15 @@ function updatePageContent(data) {
         faqBtn.id = "add-to-faqs-btn";
         faqBtn.onclick = addToFAQs;
         faqBtn.style.display = "block"; // Ensure button appears in a new line
+        const emailbtn = document.createElement("button");
+        emailbtn.id = "send-email-btn";
 
+        emailbtn.textContent = "Send Email";
+
+        emailbtn.style.display = "block";
         xlsxbtn.appendChild(viewQueryBtn); // Append below the Excel download button
-        xlsxbtn.appendChild(faqBtn); // Append below the Excel download button
+        xlsxbtn.appendChild(faqBtn);
+        xlsxbtn.appendChild(emailbtn) // Append below the Excel download button
     } else {
         sqlQueryContent.textContent = "No SQL query available.";
     }
@@ -755,7 +831,7 @@ function updatePaginationLinks(tableName, currentPage, totalPages, recordsPerPag
     // Previous Button
     const prevLi = document.createElement("li");
     prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-    prevLi.innerHTML = `<a href="javascript:void(0);" onclick="changePage('${tableName}', ${currentPage - 1}, ${recordsPerPage})" class="page-link">« Prev</a>`;
+    prevLi.innerHTML = `<a href="javascript:void(0);" onclick="${currentPage > 1 ? `changePage('${tableName}', ${currentPage - 1}, ${recordsPerPage})` : 'return false;'}" class="page-link">« Prev</a>`;
     paginationList.appendChild(prevLi);
 
     // Show "1 ..." if the startPage is greater than 1
@@ -798,7 +874,7 @@ function updatePaginationLinks(tableName, currentPage, totalPages, recordsPerPag
     // Next Button
     const nextLi = document.createElement("li");
     nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-    nextLi.innerHTML = `<a href="javascript:void(0);" onclick="changePage('${tableName}', ${currentPage + 1}, ${recordsPerPage})" class="page-link">Next »</a>`;
+    nextLi.innerHTML = `<a href="javascript:void(0);" onclick="${currentPage < totalPages ? `changePage('${tableName}', ${currentPage + 1}, ${recordsPerPage})` : 'return false;'}" class="page-link">Next »</a>`;
     paginationList.appendChild(nextLi);
 
     paginationDiv.appendChild(paginationList);
@@ -820,4 +896,20 @@ function showSQLQueryPopup() {
 // Function to close the popup
 function closeSQLQueryPopup() {
     document.getElementById("sql-query-popup").style.display = "none";
+}
+function showLangPromptPopup() {
+    document.getElementById("lang-prompt-popup").style.display = "flex";
+}
+
+
+// Function to close the popup
+function closepromptPopup() {
+    document.getElementById("lang-prompt-popup").style.display = "none";
+}
+function showinterPrompt() {
+    document.getElementById("interp-prompt-popup").style.display = "flex";
+}
+
+function closeinterpromptPopup() {
+    document.getElementById("interp-prompt-popup").style.display = "none";
 }

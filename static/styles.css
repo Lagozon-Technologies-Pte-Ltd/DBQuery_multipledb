@@ -13,22 +13,82 @@ body {
     color: #21126b;
     font-size: 18px;
 }
+
+.query-details-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.query-title {
+    margin: 0;
+    font-size: 24px;
+}
+
+/* Toggle section */
+.dev-mode-toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Toggle switch styles */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 22px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.4s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background: radial-gradient(50% 50% at 50% 50%, rgb(183.48, 168.62, 249.71) 4%, rgb(136.38, 111.28, 248.21) 100%);;
+}
+
+input:checked+.slider:before {
+    transform: translateX(18px);
+}
+
+.dev-mode-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #444;
+}
 #xlsx-btn {
     display: flex;
     justify-content: center; /* Centers the buttons horizontally */
     gap: 15px; /* Adds spacing between buttons */
     margin-top: 15px; /* Adds spacing between the table and buttons */
-}
-.feedback-section {
-    margin-top: 10px;
-    text-align: center;
-}
-
-.like-button,
-.dislike-button {
-    padding: 5px 10px;
-    margin: 0 5px;
-    cursor: pointer;
 }
 
 #add-to-faqs-btn {
@@ -51,10 +111,8 @@ body {
     /* Ensure content stacks properly */
 }
 
-/* SQL Query Popup */
 .modal {
     display: none;
-    /* Hidden by default */
     position: fixed;
     z-index: 1000;
     left: 0;
@@ -65,15 +123,28 @@ body {
     justify-content: center;
     align-items: center;
 }
+.feedback-section {
+    margin-top: 10px;
+    text-align: center;
+}
+
+.like-button,
+.dislike-button {
+    padding: 5px 10px;
+    margin: 0 5px;
+    cursor: pointer;
+}
 
 .modal-content {
     background-color: white;
     padding: 20px;
     border-radius: 10px;
     width: 60%;
-    max-width: 600px;
+    max-width: 950px;
+    max-height: 80vh;
+    overflow-y: auto;
     position: relative;
-    text-align: center;
+    text-align: left;
 }
 
 .close-btn {
@@ -83,6 +154,8 @@ body {
     font-size: 20px;
     cursor: pointer;
     font-weight: bold;
+    background: none;
+    border: none;
 }
 
 .close-btn:hover {
@@ -431,7 +504,65 @@ code.sql {
 
 
 }
+#interpBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    /* Space between icon and text */
+    background: radial-gradient(50% 50% at 50% 50%, rgb(183.48, 168.62, 249.71) 4%, rgb(136.38, 111.28, 248.21) 100%);
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 15px;
+    padding: 8px;
+    font-size: 16px;
+    transition: all 0.3s ease-in-out;
+    color: white;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
 
+
+}
+#langchainBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    /* Space between icon and text */
+    background: radial-gradient(50% 50% at 50% 50%, rgb(183.48, 168.62, 249.71) 4%, rgb(136.38, 111.28, 248.21) 100%);
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 15px;
+    padding: 8px;
+    font-size: 16px;
+    transition: all 0.3s ease-in-out;
+    color: white;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+
+
+}
+
+
+#send-email-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    /* Space between icon and text */
+    background: radial-gradient(50% 50% at 50% 50%, rgb(183.48, 168.62, 249.71) 4%, rgb(136.38, 111.28, 248.21) 100%);
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 15px;
+    padding: 8px;
+    font-size: 16px;
+    transition: all 0.3s ease-in-out;
+    color: white;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+
+
+}
 .download-btn {
     display: flex;
     align-items: center;
@@ -644,8 +775,8 @@ table td {
 }
 
 table th {
-    background-color: rgb(221, 204.64, 249.26) !important;
-    color: black !important;
+    background: rgb(221, 204.64, 249.26) !important;
+    color: #21126b !important;
     font-weight: bold;
 }
 
