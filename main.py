@@ -489,6 +489,7 @@ def load_prompts():
 # Load prompts at startup
 PROMPTS = load_prompts()
 @app.post("/submit_feedback/")
+@app.post("/submit_feedback")
 async def submit_feedback(request: Request):
     data = await request.json() # Corrected for FastAPI
     
