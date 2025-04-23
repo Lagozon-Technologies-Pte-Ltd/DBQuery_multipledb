@@ -363,6 +363,7 @@ async def generate_chart(request: ChartRequest):
         )
 
 @app.get("/download-table/")
+@app.get("/download-table")
 async def download_table(table_name: str):
     """
     Downloads a table as an Excel file.
