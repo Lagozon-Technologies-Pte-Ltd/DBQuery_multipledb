@@ -597,25 +597,17 @@ async def submit_query(
     )  
     logger.info(f"Chat history: {chat_history}")
     try:
-        # **Step 1: Invoke Unified Prompt**
+       # **Step 1: Invoke Unified Prompt**
         unified_prompt = PROMPTS["unified_prompt"].format(user_query=user_query, chat_history=chat_history)
-        response = llm.invoke(unified_prompt).content.strip()
-        print("response: ",response)
-        if response.lower() != "database":
-            # ✅ Answer found in history → Return it directly
-            session_state['messages'].append({"role": "assistant", "content": response})
-            return JSONResponse(content={
-                "user_query": user_query,
-                "chat_response": response,
-                "history": session_state['messages']
-            })
         llm_response = llm.invoke(unified_prompt).content.strip()
         logger.info(f"LLM Unified Prompt Response: {llm_response}")
 
        
         response, chosen_tables, tables_data, agent_executor = invoke_chain(
-            user_query, session_state['messages'], model, selected_subject,selected_database
+            llm_response, session_state['messages'], model, selected_subject, selected_database
         )
+       
+      
 
         if isinstance(response, str):
             session_state['generated_query'] = response
