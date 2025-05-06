@@ -1,3 +1,5 @@
 Table,Description
-
-
+DS_sales_data.billing_data,"This table contains sales activity and performance data, including RSM ID, Model ID, SourceID, open bookings, enquiries, test drives, billing and retail volumes, targets, and transaction dates."
+DS_sales_data.product_hierarchy,"This table stores product hierarchy details such as Model ID, Model Name, and the market Segment for each vehicle model."
+DS_sales_data.sales_person_hierarchy,"This table contains sales personnel hierarchy information, including RSM ID, RSM Name, Regional Office (RO) Name, and Zone Name."
+DS_sales_data.source_master,"This table holds source master data, mapping source identifiers to their descriptions or categories."
