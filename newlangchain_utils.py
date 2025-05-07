@@ -152,8 +152,11 @@ def create_bigquery_uri(project_id, dataset_id):
     return f"{project_id}.{dataset_id}"
 
 class BigQuerySQLDatabase(SQLDatabase):
-    def __init__(self):
+    def __init__(self, dataset_id=None):
+        self.dataset_id = os.getenv('dataset_id') # Save the dataset_id you want to use
+
         try:
+            # Create credentials dictionary from environment variables
             credentials_info = {
                 "type": os.getenv('GOOGLE_CREDENTIALS_TYPE'),
                 "project_id": os.getenv('GOOGLE_CREDENTIALS_PROJECT_ID'),
@@ -164,19 +167,23 @@ class BigQuerySQLDatabase(SQLDatabase):
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                 "token_uri": "https://oauth2.googleapis.com/token",
                 "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                "client_x509_cert_url": os.getenv('GOOGLE_CREDENTIALS_CLIENT_X509_CERT_URL'),
+                "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/bqserviceacc%40prateekproject-450509.iam.gserviceaccount.com",
                 "universe_domain": "googleapis.com"
             }
+
+            # Load credentials from dictionary
             credentials = service_account.Credentials.from_service_account_info(
                 credentials_info,
                 scopes=["https://www.googleapis.com/auth/bigquery"]
             )
+
             self.project_id = credentials_info["project_id"]
             self.client = bigquery.Client(credentials=credentials, project=self.project_id)
+
         except Exception as e:
             raise ValueError(f"Error loading credentials: {e}")
-
     def run(self, command: str):
+        """Executes a SQL query and returns results as JSON."""
         try:
             query_job = self.client.query(command)
             results = query_job.result()
@@ -185,29 +192,32 @@ class BigQuerySQLDatabase(SQLDatabase):
             return f"Error executing SQL command: {e}"
 
     def get_table_names(self):
+        """Returns all available tables in the project."""
         tables_list = []
-        datasets = list(self.client.list_datasets())
-        for dataset in datasets:
-            dataset_id = dataset.dataset_id
-            tables = self.client.list_tables(dataset_id)
-            for table in tables:
-                tables_list.append(f"{dataset_id}.{table.table_id}")
+        dataset_id = self.dataset_id
+        tables = self.client.list_tables(dataset_id)
+        for table in tables:
+            tables_list.append(f"{dataset_id}.{table.table_id}")
         return tables_list
 
     def get_table_info(self, table_names=None):
+        """Returns schema information for given tables."""
         if table_names is None:
             table_names = self.get_table_names()
+
         schema_info = ""
         for table_name in table_names:
             try:
-                dataset_id, table_id = table_name.split(".")
-                table_ref = self.client.dataset(dataset_id).table(table_id)
+                projectid, dataset_id, table_id = table_name.split(".")
+                table_ref = self.client.dataset(dataset_id, project=projectid).table(table_id)
                 table = self.client.get_table(table_ref)
+
                 schema_info += f"\nTable: {table_name}\nColumns:\n"
                 for column in table.schema:
                     schema_info += f"  {column.name} ({column.field_type}) {'NULLABLE' if column.is_nullable else 'NOT NULLABLE'}\n"
             except Exception as e:
                 schema_info += f"Error getting schema for table {table_name}: {e}\n"
+
         return schema_info
 
 def get_chain(question, _messages, selected_model, selected_subject, selected_database):
@@ -256,12 +266,12 @@ def get_chain(question, _messages, selected_model, selected_subject, selected_da
 
 db = BigQuerySQLDatabase()
 
-# table_info = db.get_table_info()
-# #Save table_info to a text file
-# with open("table_info.txt", "w") as file:
-#     file.write(str(table_info))
+table_info = db.get_table_info()
+#Save table_info to a text file
+with open("table_info.txt", "w") as file:
+    file.write(str(table_info))
 
-# print("Table info saved successfully to table_info.txt")
+print("Table info saved successfully to table_info.txt")
 # @cache_resource
 # def get_chain(question, _messages, selected_model, selected_subject, selected_database):
 #     llm = ChatOpenAI(model=selected_model, temperature=0)
