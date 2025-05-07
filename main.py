@@ -430,6 +430,7 @@ async def transcribe_audio(file: UploadFile = File(...)):
     except Exception as e:
         return JSONResponse(content={"error": f"Error transcribing audio: {str(e)}"}, status_code=500)
 
+@app.get("/get_questions/")
 @app.get("/get_questions")
 async def get_questions(subject: str):
     """
@@ -441,7 +442,7 @@ async def get_questions(subject: str):
     Returns:
         JSONResponse: A JSON response containing the list of questions or an error message.
     """
-    csv_file_name = f"table_files/mahindra_questions.csv"
+    csv_file_name = f"table_files/{subject}_questions.csv"
     blob_client = blob_service_client.get_blob_client(container=AZURE_CONTAINER_NAME, blob=csv_file_name)
 
     try:
@@ -469,7 +470,6 @@ async def get_questions(subject: str):
         return JSONResponse(
             content={"error": f"An error occurred while reading the file: {str(e)}"}, status_code=500
         )
-
 # Function to load prompts from YAML
 
 def load_prompts():
