@@ -38,7 +38,7 @@ from prompts1 import final_prompt1
 from prompts import final_prompt2
 
 from table_details import get_table_details , get_tables , itemgetter , create_extraction_chain_pydantic, Table 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 import configure
@@ -127,7 +127,6 @@ def load_votes(table_name):
         raise e  # Propagate the exception
     finally:
         session.close()
-
 def get_postgres_db(selected_subject, chosen_tables):
     print("SELECTED SUB",selected_subject,chosen_tables)
     try:
@@ -151,10 +150,9 @@ def create_bigquery_uri(project_id, dataset_id):
     """Creates a BigQuery URI string."""
     return f"{project_id}.{dataset_id}"
 
-class BigQuerySQLDatabase(SQLDatabase):
-    def __init__(self, dataset_id=None):
-        self.dataset_id = os.getenv('dataset_id') # Save the dataset_id you want to use
 
+class BigQuerySQLDatabase(SQLDatabase):
+    def __init__(self):
         try:
             # Create credentials dictionary from environment variables
             credentials_info = {
@@ -194,10 +192,12 @@ class BigQuerySQLDatabase(SQLDatabase):
     def get_table_names(self):
         """Returns all available tables in the project."""
         tables_list = []
-        dataset_id = self.dataset_id
-        tables = self.client.list_tables(dataset_id)
-        for table in tables:
-            tables_list.append(f"{dataset_id}.{table.table_id}")
+        datasets = list(self.client.list_datasets())
+        for dataset in datasets:
+            dataset_id = dataset.dataset_id
+            tables = self.client.list_tables(dataset_id)
+            for table in tables:
+                tables_list.append(f"{dataset_id}.{table.table_id}")
         return tables_list
 
     def get_table_info(self, table_names=None):
@@ -208,8 +208,8 @@ class BigQuerySQLDatabase(SQLDatabase):
         schema_info = ""
         for table_name in table_names:
             try:
-                projectid, dataset_id, table_id = table_name.split(".")
-                table_ref = self.client.dataset(dataset_id, project=projectid).table(table_id)
+                dataset_id, table_id = table_name.split(".")
+                table_ref = self.client.dataset(dataset_id).table(table_id)
                 table = self.client.get_table(table_ref)
 
                 schema_info += f"\nTable: {table_name}\nColumns:\n"
@@ -219,33 +219,54 @@ class BigQuerySQLDatabase(SQLDatabase):
                 schema_info += f"Error getting schema for table {table_name}: {e}\n"
 
         return schema_info
+db = BigQuerySQLDatabase()
 
+# table_info = db.get_table_info()
+# #Save table_info to a text file
+# with open("table_info.txt", "w") as file:
+#     file.write(str(table_info))
+
+print("Table info saved successfully to table_info.txt")
+# @cache_resource
 def get_chain(question, _messages, selected_model, selected_subject, selected_database):
     llm = ChatOpenAI(model=selected_model, temperature=0)
 
-    if selected_database == "GCP":
-        # Use table selection logic for BigQuery
-        table_details = get_table_details(selected_subject)
-        print("selected csv is : ", table_details)
+    if selected_database=="GCP":
+            # Use table selection logic for BigQuery
+            table_details = get_table_details(selected_subject)
+            print("selected csv is : ", table_details)
 
-        table_details_set_prompt = os.getenv('TABLE_DETAILS_SET_PROMPT')
-        table_details_prompt = table_details_set_prompt.format(table=table_details)
-        table_chain = {"input": itemgetter("question")} | create_extraction_chain_pydantic(Table, llm, system_message=table_details_prompt) | get_tables
-        chosen_tables = table_chain.invoke({"question": question})
-        db = BigQuerySQLDatabase()
-        final_prompt = final_prompt1
+            table_details_set_prompt = os.getenv('TABLE_DETAILS_SET_PROMPT')
+            table_details_prompt = table_details_set_prompt.format(table=table_details)
+            table_chain = {"input": itemgetter("question")} | create_extraction_chain_pydantic(Table, llm, system_message=table_details_prompt) | get_tables
+            chosen_tables = table_chain.invoke({"question": question})
+            db = BigQuerySQLDatabase()
+            final_prompt = final_prompt1
     else:
         table_details = get_table_details(selected_subject)
+        print("Selected subject, inside get chain",selected_subject)
         table_details_set_prompt = os.getenv('TABLE_DETAILS_SET_PROMPT')
         table_details_prompt = table_details_set_prompt.format(table=table_details)
+        
         table_chain = {"input": itemgetter("question")} | create_extraction_chain_pydantic(Table, llm, system_message=table_details_prompt) | get_tables
+        print("hiiiii")
         chosen_tables = table_chain.invoke({"question": question})
+        print("helllooo")
         db = get_postgres_db(selected_subject, chosen_tables)
-        final_prompt = final_prompt2
-
+        print("foolll")
+    print("start",selected_database)
+    print("Generate Query Starting")
+    if selected_database=="GCP":
+        print(selected_database)
+        final_prompt=final_prompt1
+    else:
+        print("kkk")
+        final_prompt=final_prompt2    
     generate_query = create_sql_query_chain(llm, db, final_prompt)
     SQL_Statement = generate_query.invoke({"question": question, "messages": _messages})
-    
+    print(f"Generated SQL Statement before execution: {SQL_Statement}")
+
+    # Override QuerySQLDataBaseTool validation
     class CustomQuerySQLDatabaseTool(QuerySQLDataBaseTool):
         def __init__(self, db):
             if not isinstance(db, SQLDatabase):
@@ -253,75 +274,18 @@ def get_chain(question, _messages, selected_model, selected_subject, selected_da
             super().__init__(db=db)
 
     execute_query = CustomQuerySQLDatabaseTool(db=db)
-
+    
     chain = (
-        RunnablePassthrough.assign(table_names_to_use=lambda _: chosen_tables) |
+        RunnablePassthrough.assign(table_names_to_use=lambda _: db.get_table_names()) |  # Get table names
         RunnablePassthrough.assign(query=generate_query).assign(
             result=itemgetter("query")
         )
     )
-
+    if selected_database == "GCP":
+        chosen_tables = db.get_table_names()
+        
+    
     return chain, chosen_tables, SQL_Statement, db
-
-
-db = BigQuerySQLDatabase()
-
-table_info = db.get_table_info()
-#Save table_info to a text file
-with open("table_info.txt", "w") as file:
-    file.write(str(table_info))
-
-print("Table info saved successfully to table_info.txt")
-# @cache_resource
-# def get_chain(question, _messages, selected_model, selected_subject, selected_database):
-#     llm = ChatOpenAI(model=selected_model, temperature=0)
-
-#     if selected_database=="GCP":
-#             db = BigQuerySQLDatabase()
-#     else:
-#         table_details = get_table_details(selected_subject)
-#         print("Selected subject, inside get chain",selected_subject)
-#         table_details_set_prompt = os.getenv('TABLE_DETAILS_SET_PROMPT')
-#         table_details_prompt = table_details_set_prompt.format(table=table_details)
-        
-#         table_chain = {"input": itemgetter("question")} | create_extraction_chain_pydantic(Table, llm, system_message=table_details_prompt) | get_tables
-#         print("hiiiii")
-#         chosen_tables = table_chain.invoke({"question": question})
-#         print("helllooo")
-#         db = get_postgres_db(selected_subject, chosen_tables)
-#         print("foolll")
-#     print("start",selected_database)
-#     print("Generate Query Starting")
-#     if selected_database=="GCP":
-#         print(selected_database)
-#         final_prompt=final_prompt1
-#     else:
-#         print("kkk")
-#         final_prompt=final_prompt2    
-#     generate_query = create_sql_query_chain(llm, db, final_prompt)
-#     SQL_Statement = generate_query.invoke({"question": question, "messages": _messages})
-#     print(f"Generated SQL Statement before execution: {SQL_Statement}")
-
-#     # Override QuerySQLDataBaseTool validation
-#     class CustomQuerySQLDatabaseTool(QuerySQLDataBaseTool):
-#         def __init__(self, db):
-#             if not isinstance(db, SQLDatabase):
-#                 raise ValueError("db must be an instance of SQLDatabase")
-#             super().__init__(db=db)
-
-#     execute_query = CustomQuerySQLDatabaseTool(db=db)
-    
-#     chain = (
-#         RunnablePassthrough.assign(table_names_to_use=lambda _: db.get_table_names()) |  # Get table names
-#         RunnablePassthrough.assign(query=generate_query).assign(
-#             result=itemgetter("query")
-#         )
-#     )
-#     if selected_database == "GCP":
-#         chosen_tables = db.get_table_names()
-        
-    
-#     return chain, chosen_tables, SQL_Statement, db
 
 # def read_table_info(file_path):
 #     """
@@ -336,43 +300,49 @@ print("Table info saved successfully to table_info.txt")
 # table_info_text = read_table_info("table_info.txt")  # Load the entire text of the file
 
 def invoke_chain(question, messages, selected_model, selected_subject, selected_database):
+    print("hiii")
+    print(question, messages, selected_model, selected_subject, selected_database)
     try:
-        history = ChatMessageHistory()
-        for message in messages:
-            if message["role"] == "user":
-                history.add_user_message(message["content"])
-            else:
-                history.add_ai_message(message["content"])
-
-        chain, chosen_tables, SQL_Statement, db = get_chain(
-            question, history.messages, selected_model, selected_subject, selected_database
-        )
+        # if not is_relevant(question, table_info):
+        #     return "I am DBQuery, a generative AI tool developed at Lagozon Technologies for database query generation. Please ask me queries related to your database.", [], {}, None
+        print('Model used:', selected_model)
+        history = create_history(messages)
+        chain, chosen_tables, SQL_Statement, db = get_chain(question, history.messages, selected_model, selected_subject, selected_database)
+        print(f"Generated SQL Statement in newlangchain_utils: {SQL_Statement}")
         SQL_Statement = SQL_Statement.replace("SQL Query:", "").strip()
+
         response = chain.invoke({"question": question, "top_k": 3, "messages": history.messages})
+        print("Question:", question)
+        print("Response:", response)
+        print("Chosen tables:", chosen_tables)
+        alchemyEngine = create_engine(f'postgresql+psycopg2://{quote_plus(db_user)}:{quote_plus(db_password)}@{db_host}:{db_port}/{db_database}')
 
         tables_data = {}
         for table in chosen_tables:
-            query = response["query"].replace("{table}", table)
-            if selected_database == "GCP":
+            query = response["query"]
+            print(f"Executing SQL Query: {query}")
+            if selected_database=="GCP":
                 result_json = db.run(query)
-                df = pd.DataFrame(result_json)
+                df = pd.DataFrame(result_json)  # Convert result to DataFrame
                 tables_data[table] = df
-                # Remove break if you want to process all tables
                 break
             else:
-                alchemyEngine = create_engine(
-                    f'postgresql+psycopg2://{quote_plus(db_user)}:{quote_plus(db_password)}@{db_host}:{db_port}/{db_database}'
-                )
                 with alchemyEngine.connect() as conn:
-                    df = pd.read_sql(sql=query, con=conn.connection)
+                    df = pd.read_sql(
+                        sql=query,
+                        con=conn.connection
+                    )
+                # tables_data[table] = pd.DataFrame()
                 tables_data[table] = df
+                print(table)
                 break
 
         return response, chosen_tables, tables_data, db
 
     except Exception as e:
+        print("Error:", e)
         return "Insufficient information to generate SQL Query.", [], {}, e
-    
+
 def create_history(messages):
     history = ChatMessageHistory()
     for message in messages:
