@@ -371,6 +371,14 @@ async function sendMessage() {
         console.error("Error:", error);
         typingIndicator.style.display = "none";
         alert("Error processing request.");
+                
+        // Clear previous content
+        document.getElementById("tables_container").innerHTML = "";
+        document.getElementById("sql-query-content").textContent = "No SQL query available.";
+        document.getElementById("xlsx-btn").innerHTML = "";
+        document.getElementById("lang-prompt-content").textContent = "";
+        document.getElementById("interp-prompt-content").textContent = "";
+
     }
 }
 
@@ -683,6 +691,14 @@ function updatePageContent(data) {
     const xlsxbtn = document.getElementById("xlsx-btn"); // Excel button container
     const emailbtn = document.getElementById("email-btn"); // Excel button container
     const faqbtn = document.getElementById("add-to-faqs-btn");
+
+    
+    // ✅ Clear previous chart
+    const chartContainer = document.getElementById("chart-container");
+    if (chartContainer) {
+        chartContainer.innerHTML = "";
+    }
+
     // Update user query text
     userQueryDisplay.querySelector('span').textContent = data.user_query || "";
 
@@ -776,31 +792,43 @@ function updatePageContent(data) {
 /**
  *
  */
-function addToFAQs() {
-    let userQuery = document.querySelector("#user_query_display span").innerText;
+async function addToFAQs() {
+    const selectedSection = document.getElementById('section-dropdown').value;
+    const userQuery = document.querySelector("#user_query_display span").innerText.trim();
+    const faqMessage = document.getElementById("faq-message");
 
-    if (!userQuery.trim()) {
-        document.getElementById("faq-message").innerText = "Query cannot be empty!";
+    // Validation
+    if (!selectedSection) {
+        faqMessage.innerText = "Please select a subject area first!";
+        return;
+    }
+    if (!userQuery) {
+        faqMessage.innerText = "Query cannot be empty!";
         return;
     }
 
-    fetch('/add_to_faqs', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ query: userQuery })
-    })
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById("faq-message").innerText = data.message;
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            document.getElementById("faq-message").innerText = "Failed to add query to FAQs!";
-        });
-}
-/**
+    try {
+        const response = await fetch(
+            `/add_to_faqs?subject=${encodeURIComponent(selectedSection)}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: userQuery, answer: "" }),
+            }
+        );
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || "Failed to add to FAQs");
+        }
+
+        const data = await response.json();
+        faqMessage.innerText = data.message || "Added to FAQs successfully!";
+    } catch (error) {
+        console.error("FAQ Error:", error);
+        faqMessage.innerText = error.message || "Failed to add query to FAQs!";
+    }
+}/**
  * @param {any} tableName
  */
 function downloadSpecificTable(tableName) {
